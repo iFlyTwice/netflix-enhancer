@@ -1343,20 +1343,14 @@
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 8.0444px 24.1332px 8.0444px 20.111px;
                     background: rgba(109, 109, 110, 0.7);
                     border: none;
                     border-radius: 4px;
                     color: white;
-                    font-family: "Netflix Sans", "Helvetica Neue", "Segoe UI", Roboto, Ubuntu, sans-serif;
-                    font-size: 10.0555px;
-                    font-weight: 400;
-                    line-height: 8.848841px;
                     cursor: pointer;
                     transition: background 0.2s ease;
                     margin-left: 0.5rem;
                     white-space: nowrap;
-                    height: 40.1875px;
                     box-sizing: border-box;
                 }
 
@@ -1542,6 +1536,19 @@
 
             const button = document.createElement('button');
             button.className = 'ne-billboard-list-btn';
+
+            // Copy size/font from the More Info button so they always match
+            const moreInfoBtn = btnContainer.querySelector('[data-uia="billboard-more-info"]');
+            if (moreInfoBtn) {
+                const s = getComputedStyle(moreInfoBtn);
+                button.style.height = s.height;
+                button.style.padding = s.padding;
+                button.style.fontSize = s.fontSize;
+                button.style.fontFamily = s.fontFamily;
+                button.style.fontWeight = s.fontWeight;
+                button.style.lineHeight = s.lineHeight;
+                button.style.borderRadius = s.borderRadius;
+            }
 
             const inList = this.watchlistManager.isInWatchlist(videoId);
             button.innerHTML = inList

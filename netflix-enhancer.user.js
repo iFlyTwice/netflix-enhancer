@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhancer Pro
 // @namespace    http://tampermonkey.net/
-// @version      4.0.0
+// @version      4.0.1
 // @description  Modern Netflix enhancement with React UI, auto-skip, custom controls, and more - INSTANT UPDATES!
 // @author       iFlyTwice
 // @match        https://www.netflix.com/*
@@ -28,15 +28,19 @@
 (function() {
     'use strict';
 
-    console.log('[Netflix Enhancer Pro] v4.0 Loader - Fetching latest code...');
+    console.log('[Netflix Enhancer Pro] v4.0.1 Loader - Fetching latest code...');
 
     const CORE_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
     const FALLBACK_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/main/netflix-enhancer-core.js';
-    const cacheBuster = new Date().toISOString().split('T')[0];
+    const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     GM_xmlhttpRequest({
         method: 'GET',
         url: `${CORE_URL}?v=${cacheBuster}`,
+        headers: {
+            'Cache-Control': 'no-cache, no-store, max-age=0',
+            'Pragma': 'no-cache'
+        },
         onload(response) {
             if (response.status === 200) {
                 console.log('[Netflix Enhancer Pro] Core loaded from CDN ✓');
@@ -62,6 +66,10 @@
         GM_xmlhttpRequest({
             method: 'GET',
             url: `${FALLBACK_URL}?v=${cacheBuster}`,
+            headers: {
+                'Cache-Control': 'no-cache, no-store, max-age=0',
+                'Pragma': 'no-cache'
+            },
             onload(response) {
                 if (response.status === 200) {
                     console.log('[Netflix Enhancer Pro] Core loaded from GitHub ✓');

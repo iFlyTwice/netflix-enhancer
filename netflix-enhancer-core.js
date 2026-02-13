@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.2.3';
+    const CORE_VERSION = '5.3.0';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -160,8 +160,8 @@
         async init() {
             let saved = {};
             try {
-                saved = await GM.getValue('netflix_enhancer_config', {});
-                if (typeof saved === 'string') saved = JSON.parse(saved);
+                const raw = localStorage.getItem('netflix_enhancer_config');
+                if (raw) saved = JSON.parse(raw);
             } catch (e) {
                 console.warn('[Netflix Enhancer] Failed to load config, using defaults:', e);
             }
@@ -174,11 +174,12 @@
                         const oldValue = target[prop];
                         target[prop] = value;
 
-                        // Persist to storage as plain object
-                        const plain = { ...target };
-                        GM.setValue('netflix_enhancer_config', plain).catch(err => {
+                        // Persist to localStorage as plain object
+                        try {
+                            localStorage.setItem('netflix_enhancer_config', JSON.stringify({ ...target }));
+                        } catch (err) {
                             console.error('[Netflix Enhancer] Config save failed:', err);
-                        });
+                        }
 
                         // Notify listeners
                         this.notifyListeners(prop, value, oldValue);
@@ -234,7 +235,13 @@
         }
 
         async init() {
-            this.watchlist = await GM.getValue('netflix_enhancer_watchlist', []);
+            try {
+                const raw = localStorage.getItem('netflix_enhancer_watchlist');
+                this.watchlist = raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                console.warn('[Netflix Enhancer] Failed to load watchlist:', e);
+                this.watchlist = [];
+            }
             return this.watchlist;
         }
 
@@ -255,14 +262,14 @@
             };
 
             this.watchlist.unshift(watchItem);
-            await GM.setValue('netflix_enhancer_watchlist', this.watchlist);
+            localStorage.setItem('netflix_enhancer_watchlist', JSON.stringify(this.watchlist));
             this.toastManager.show(`Added "${item.title}" to Continue Watching`, 2000, 'fa-plus');
         }
 
         async removeFromWatchlist(id) {
             const item = this.watchlist.find(w => w.id === id);
             this.watchlist = this.watchlist.filter(w => w.id !== id);
-            await GM.setValue('netflix_enhancer_watchlist', this.watchlist);
+            localStorage.setItem('netflix_enhancer_watchlist', JSON.stringify(this.watchlist));
             if (item) {
                 this.toastManager.show(`Removed "${item.title}"`, 1500, 'fa-trash');
             }
@@ -270,7 +277,7 @@
 
         async clearWatchlist() {
             this.watchlist = [];
-            await GM.setValue('netflix_enhancer_watchlist', []);
+            localStorage.setItem('netflix_enhancer_watchlist', JSON.stringify([]));
             this.toastManager.show('Continue Watching cleared', 1500, 'fa-check');
         }
 
@@ -1331,17 +1338,47 @@
                 .ne-progress-badge.almost-done {
                     background: rgba(124, 58, 237, 0.85);
                 }
+
+                .ne-billboard-list-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 0.6rem 1.5rem;
+                    background: rgba(109, 109, 110, 0.7);
+                    border: none;
+                    border-radius: 4px;
+                    color: white;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.2s ease;
+                    margin-left: 0.5rem;
+                    white-space: nowrap;
+                }
+
+                .ne-billboard-list-btn:hover {
+                    background: rgba(109, 109, 110, 0.4);
+                }
+
+                .ne-billboard-list-btn.in-list {
+                    background: rgba(124, 58, 237, 0.8);
+                }
+
+                .ne-billboard-list-btn.in-list:hover {
+                    background: rgba(124, 58, 237, 0.6);
+                }
             `);
             
             this.observer = new MutationObserver(() => {
                 this.enhanceTitleCards();
+                this.enhanceBillboard();
             });
 
             this.observer.observe(document.body, {
                 childList: true,
                 subtree: true
             });
-            
+
             console.log('[Netflix Enhancer] Title card enhancements enabled');
         }
 
@@ -1475,6 +1512,55 @@
 
             container.style.position = 'relative';
             container.appendChild(badge);
+        }
+
+        enhanceBillboard() {
+            const btnContainer = document.querySelector('.billboard-links.button-layer.forward-leaning');
+            if (!btnContainer || btnContainer.querySelector('.ne-billboard-list-btn')) return;
+
+            const billboard = btnContainer.closest('.billboard');
+            if (!billboard) return;
+
+            // Get video ID from billboard tracking context
+            const ptrack = billboard.querySelector('.ptrack-content[data-ui-tracking-context]');
+            let videoId = null;
+            if (ptrack) {
+                try {
+                    const ctx = JSON.parse(decodeURIComponent(ptrack.getAttribute('data-ui-tracking-context')));
+                    if (ctx.video_id) videoId = String(ctx.video_id);
+                } catch { /* ignore */ }
+            }
+            if (!videoId) videoId = getCurrentVideoIdFromAppState();
+            if (!videoId) return;
+
+            const titleLogo = billboard.querySelector('.title-logo');
+            const title = titleLogo ? (titleLogo.alt || titleLogo.getAttribute('title') || 'Unknown Title') : 'Unknown Title';
+
+            const button = document.createElement('button');
+            button.className = 'ne-billboard-list-btn';
+
+            const inList = this.watchlistManager.isInWatchlist(videoId);
+            button.innerHTML = inList
+                ? '<i class="fa-solid fa-check"></i> In My List'
+                : '<i class="fa-solid fa-plus"></i> My List';
+            if (inList) button.classList.add('in-list');
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (this.watchlistManager.isInWatchlist(videoId)) {
+                    this.watchlistManager.removeFromWatchlist(videoId);
+                    button.classList.remove('in-list');
+                    button.innerHTML = '<i class="fa-solid fa-plus"></i> My List';
+                } else {
+                    this.watchlistManager.addToWatchlist({ id: videoId, title, url: window.location.href });
+                    button.classList.add('in-list');
+                    button.innerHTML = '<i class="fa-solid fa-check"></i> In My List';
+                }
+            });
+
+            btnContainer.appendChild(button);
         }
 
         destroy() {

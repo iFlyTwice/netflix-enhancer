@@ -1288,7 +1288,9 @@
             this.configManager = configManager;
             this.toastManager = toastManager;
             this.observer = null;
+            this.pollInterval = null;
             this.lastSkipTime = 0;
+            this.pendingSkip = null;
         }
 
         init() {
@@ -1298,36 +1300,32 @@
 
             this.observer.observe(document.body, {
                 childList: true,
-                subtree: true
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class', 'style', 'data-uia']
             });
+
+            this.pollInterval = setInterval(() => {
+                this.checkForSkipButtons();
+            }, 1000);
 
             console.log('[Netflix Enhancer] AutoSkip Manager initialized');
         }
 
         checkForSkipButtons() {
             const config = this.configManager.get();
-            
-            // Skip intro button
-            if (config.autoSkipIntro) {
-                const skipIntro = document.querySelector('[data-uia="player-skip-intro"]');
-                if (skipIntro && this.isVisible(skipIntro)) {
-                    this.handleSkipButton(skipIntro, 'intro');
-                }
-            }
-            
-            // Skip recap button
-            if (config.autoSkipRecap) {
-                const skipRecap = document.querySelector('[data-uia="player-skip-recap"]');
-                if (skipRecap && this.isVisible(skipRecap)) {
-                    this.handleSkipButton(skipRecap, 'recap');
-                }
-            }
-            
-            // Skip credits / Watch next button
-            if (config.autoSkipCredits) {
-                const skipCredits = document.querySelector('[data-uia="next-episode-seamless-button"]');
-                if (skipCredits && this.isVisible(skipCredits)) {
-                    this.handleSkipButton(skipCredits, 'credits', false); // Don't highlight
+
+            const skipTargets = [
+                { enabled: config.autoSkipIntro, selector: '[data-uia="player-skip-intro"]', type: 'intro' },
+                { enabled: config.autoSkipRecap, selector: '[data-uia="player-skip-recap"]', type: 'recap' },
+                { enabled: config.autoSkipCredits, selector: '[data-uia="next-episode-seamless-button"]', type: 'credits' },
+            ];
+
+            for (const target of skipTargets) {
+                if (!target.enabled) continue;
+                const btn = document.querySelector(target.selector);
+                if (btn && this.isVisible(btn)) {
+                    this.handleSkipButton(btn, target.type, target.selector);
                 }
             }
         }
@@ -1335,38 +1333,60 @@
         isVisible(element) {
             if (!element) return false;
             const rect = element.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
+            if (rect.width === 0 || rect.height === 0) return false;
+            const style = window.getComputedStyle(element);
+            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
         }
 
-        handleSkipButton(button, type, shouldHighlight = true) {
+        simulateClick(element) {
+            const rect = element.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            const eventOpts = { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y };
+
+            element.dispatchEvent(new PointerEvent('pointerdown', eventOpts));
+            element.dispatchEvent(new MouseEvent('mousedown', eventOpts));
+            element.dispatchEvent(new PointerEvent('pointerup', eventOpts));
+            element.dispatchEvent(new MouseEvent('mouseup', eventOpts));
+            element.dispatchEvent(new MouseEvent('click', eventOpts));
+        }
+
+        handleSkipButton(button, type, selector) {
             const config = this.configManager.get();
             const now = Date.now();
-            
+
             // Highlight button if enabled
-            if (config.highlightSkipButton && shouldHighlight) {
+            if (config.highlightSkipButton && type !== 'credits') {
                 button.style.border = '3px solid #a78bfa';
                 button.style.boxShadow = '0 0 15px rgba(167, 139, 250, 0.6)';
             }
-            
-            // Auto-click after delay (prevent duplicate clicks)
-            const skipKey = `skip-${type}`;
-            if (!button.dataset[skipKey] && now - this.lastSkipTime > 2000) {
-                button.dataset[skipKey] = 'true';
-                
-                setTimeout(() => {
-                    if (this.isVisible(button)) {
-                        button.click();
-                        this.lastSkipTime = Date.now();
-                        this.toastManager.show(`Skipped ${type}`, 1500, 'skipForward');
-                        console.log(`[Netflix Enhancer] Auto-skipped ${type}`);
-                    }
-                }, config.skipDelay);
-            }
+
+            if (now - this.lastSkipTime < 3000) return;
+            if (this.pendingSkip === type) return;
+
+            this.pendingSkip = type;
+            console.log(`[Netflix Enhancer] Skip ${type} button detected, clicking in ${config.skipDelay}ms...`);
+
+            setTimeout(() => {
+                this.pendingSkip = null;
+                const freshButton = document.querySelector(selector);
+                if (freshButton && this.isVisible(freshButton)) {
+                    this.simulateClick(freshButton);
+                    this.lastSkipTime = Date.now();
+                    this.toastManager.show(`Skipped ${type}`, 1500, 'skipForward');
+                    console.log(`[Netflix Enhancer] Auto-skipped ${type}`);
+                } else {
+                    console.log(`[Netflix Enhancer] Skip ${type} button gone before click`);
+                }
+            }, config.skipDelay);
         }
 
         destroy() {
             if (this.observer) {
                 this.observer.disconnect();
+            }
+            if (this.pollInterval) {
+                clearInterval(this.pollInterval);
             }
         }
     }

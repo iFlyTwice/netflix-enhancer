@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.5.1';
+    const CORE_VERSION = '5.6.0';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
 
@@ -611,18 +611,17 @@
                 React.createElement('div', { className: 'settings-body' },
                     // Auto-Skip Tab
                     activeTab === 'auto-skip' && React.createElement('div', { className: 'tab-content active' },
-                        React.createElement('div', { className: 'setting-group' },
-                            React.createElement('div', { className: 'setting-group-title' }, 'Auto-Skip Features'),
-                            
-                            SettingItem('Auto-Skip Intros', 'Automatically skip show intros', 
+                        React.createElement(CollapsibleGroup, { title: 'Skip Actions', icon: 'skipForward' },
+                            SettingItem('Auto-Skip Intros', 'Automatically skip show intros',
                                 config.autoSkipIntro, (val) => handleChange('autoSkipIntro', val)),
-                            SettingItem('Auto-Skip Recaps', 'Automatically skip episode recaps', 
+                            SettingItem('Auto-Skip Recaps', 'Automatically skip episode recaps',
                                 config.autoSkipRecap, (val) => handleChange('autoSkipRecap', val)),
-                            SettingItem('Auto-Skip Credits', 'Skip end credits and advance to next episode', 
-                                config.autoSkipCredits, (val) => handleChange('autoSkipCredits', val)),
-                            SettingItem('Highlight Skip Button', 'Show green border on skip buttons', 
+                            SettingItem('Auto-Skip Credits', 'Skip end credits and advance to next episode',
+                                config.autoSkipCredits, (val) => handleChange('autoSkipCredits', val))
+                        ),
+                        React.createElement(CollapsibleGroup, { title: 'Skip Options', icon: 'zap' },
+                            SettingItem('Highlight Skip Button', 'Show green border on skip buttons',
                                 config.highlightSkipButton, (val) => handleChange('highlightSkipButton', val)),
-                            
                             NumberSettingItem('Skip Delay (ms)', 'Delay before auto-skipping',
                                 config.skipDelay, (val) => handleChange('skipDelay', val), 0, 5000, 500)
                         )
@@ -630,17 +629,15 @@
                     
                     // Playback Tab
                     activeTab === 'playback' && React.createElement('div', { className: 'tab-content active' },
-                        React.createElement('div', { className: 'setting-group' },
-                            React.createElement('div', { className: 'setting-group-title' }, 'Playback Controls'),
-                            
-                            SettingItem('Custom Speed Controls', 'Enable custom playback speed shortcuts', 
+                        React.createElement(CollapsibleGroup, { title: 'Speed Control', icon: 'fastForward' },
+                            SettingItem('Custom Speed Controls', 'Enable custom playback speed shortcuts',
                                 config.enableCustomSpeed, (val) => handleChange('enableCustomSpeed', val)),
-                            
                             SelectSettingItem('Default Speed', 'Initial playback speed',
                                 config.defaultSpeed, (val) => handleChange('defaultSpeed', parseFloat(val)),
-                                [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]),
-                            
-                            SettingItem('Keyboard Shortcuts', 'S: toggle speed | R: rewind 10s | F: forward 10s', 
+                                [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+                        ),
+                        React.createElement(CollapsibleGroup, { title: 'Keyboard Shortcuts', icon: 'zap' },
+                            SettingItem('Keyboard Shortcuts', 'S: toggle speed | R: rewind 10s | F: forward 10s',
                                 config.enableKeyboardShortcuts, (val) => handleChange('enableKeyboardShortcuts', val))
                         )
                     ),
@@ -798,6 +795,22 @@
         );
     }
     
+    // Collapsible sub-group component for settings tabs
+    function CollapsibleGroup({ title, icon, children, defaultOpen = true }) {
+        const [isOpen, setIsOpen] = useState(defaultOpen);
+        return React.createElement('div', { className: 'collapsible-group' },
+            React.createElement('button', {
+                className: 'collapsible-header',
+                onClick: () => setIsOpen(!isOpen)
+            },
+                icon && React.createElement(IconReact, { name: icon, size: 16, className: 'collapsible-icon' }),
+                React.createElement('span', { className: 'collapsible-title' }, title),
+                React.createElement('span', { className: `collapsible-chevron ${isOpen ? 'open' : ''}` })
+            ),
+            isOpen && React.createElement('div', { className: 'collapsible-content' }, children)
+        );
+    }
+
     // ============================================================
     // SETTINGS PANEL WRAPPER CLASS
     // ============================================================
@@ -916,7 +929,63 @@
                     margin-bottom: 12px; padding-bottom: 8px;
                     border-bottom: 1px solid #3f3f46;
                 }
-                
+
+                .collapsible-group {
+                    border: 1px solid #3f3f46;
+                    border-radius: 10px;
+                    margin-bottom: 12px;
+                    overflow: hidden;
+                }
+
+                .collapsible-header {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 14px 16px;
+                    background: #27272a;
+                    border: none;
+                    color: #fafafa;
+                    font-family: Netflix Sans, Helvetica, Arial, sans-serif;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+
+                .collapsible-header:hover {
+                    background: #323238;
+                }
+
+                .collapsible-icon {
+                    color: #a78bfa;
+                }
+
+                .collapsible-title {
+                    flex: 1;
+                    text-align: left;
+                }
+
+                .collapsible-chevron {
+                    display: inline-block;
+                    transition: transform 0.2s ease;
+                    font-size: 18px;
+                    line-height: 1;
+                    color: #a1a1aa;
+                }
+
+                .collapsible-chevron::after {
+                    content: '›';
+                }
+
+                .collapsible-chevron.open {
+                    transform: rotate(90deg);
+                }
+
+                .collapsible-content {
+                    padding: 8px 12px 12px;
+                }
+
                 .setting-item {
                     display: flex; justify-content: space-between;
                     align-items: center; padding: 12px;

@@ -18,6 +18,8 @@
 // @connect      api.github.com
 // @connect      cdn.jsdelivr.net
 // @connect      raw.githubusercontent.com
+// @connect      api.themoviedb.org
+// @connect      www.omdbapi.com
 // @run-at       document-start
 // ==/UserScript==
 

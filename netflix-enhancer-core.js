@@ -25,6 +25,7 @@
         fastForward: icon('<path d="M12 6a2 2 0 0 1 3.414-1.414l6 6a2 2 0 0 1 0 2.828l-6 6A2 2 0 0 1 12 18z"/><path d="M2 6a2 2 0 0 1 3.414-1.414l6 6a2 2 0 0 1 0 2.828l-6 6A2 2 0 0 1 2 18z"/>'),
         zap:         icon('<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>'),
         info:        icon('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'),
+        star:        icon('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'),
     };
 
     // Helper: create a React element from an icon SVG string
@@ -161,6 +162,7 @@
         // Video Enhancements
         enhanceTitleCards: true,
         showWatchlistButtons: true,
+        showRatings: true,
         
         // Custom Styles
         enableCustomStyles: true,
@@ -310,6 +312,138 @@
 
         isInWatchlist(id) {
             return this.watchlist.some(w => w.id === id);
+        }
+    }
+
+    // ============================================================
+    // RATINGS MANAGER - TMDB/OMDB Ratings Cache & Fetcher
+    // ============================================================
+
+    class RatingsManager {
+        constructor() {
+            this.cache = {};
+            this.pending = new Map();
+            this.TMDB_KEY = '694087a90face8b3b1590c452d1ff45a';
+            this.OMDB_KEY = 'f4277fe7';
+            this.loadCache();
+        }
+
+        loadCache() {
+            try {
+                const raw = localStorage.getItem('netflix_enhancer_ratings');
+                this.cache = raw ? JSON.parse(raw) : {};
+            } catch {
+                this.cache = {};
+            }
+            // Prune entries older than 7 days
+            const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            for (const key of Object.keys(this.cache)) {
+                if (this.cache[key].ts < weekAgo) delete this.cache[key];
+            }
+            this.saveCache();
+        }
+
+        saveCache() {
+            try {
+                localStorage.setItem('netflix_enhancer_ratings', JSON.stringify(this.cache));
+            } catch { /* quota */ }
+        }
+
+        cacheKey(title, year) {
+            return `${title.toLowerCase().trim()}|${year || ''}`;
+        }
+
+        async getRating(title, year) {
+            if (!title) return null;
+
+            const key = this.cacheKey(title, year);
+            if (this.cache[key]) {
+                return this.cache[key].notFound ? null : this.cache[key];
+            }
+
+            // Deduplicate concurrent requests for same title
+            if (this.pending.has(key)) return this.pending.get(key);
+
+            const promise = this._fetch(title, year, key);
+            this.pending.set(key, promise);
+            try {
+                return await promise;
+            } finally {
+                this.pending.delete(key);
+            }
+        }
+
+        async _fetch(title, year, key) {
+            // Try OMDB first — gives IMDb + RT in one call
+            const omdb = await this._omdb(title, year);
+            if (omdb) {
+                this.cache[key] = { ...omdb, ts: Date.now() };
+                this.saveCache();
+                return this.cache[key];
+            }
+
+            // Fallback: TMDB
+            const tmdb = await this._tmdb(title, year);
+            if (tmdb) {
+                this.cache[key] = { ...tmdb, ts: Date.now() };
+                this.saveCache();
+                return this.cache[key];
+            }
+
+            // Not found — cache the miss to avoid re-fetching
+            this.cache[key] = { notFound: true, ts: Date.now() };
+            this.saveCache();
+            return null;
+        }
+
+        _omdb(title, year) {
+            return new Promise(resolve => {
+                let url = `https://www.omdbapi.com/?apikey=${this.OMDB_KEY}&t=${encodeURIComponent(title)}`;
+                if (year) url += `&y=${year}`;
+
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url,
+                    onload(res) {
+                        try {
+                            const d = JSON.parse(res.responseText);
+                            if (d.Response !== 'True') return resolve(null);
+                            const result = {
+                                imdb: d.imdbRating !== 'N/A' ? parseFloat(d.imdbRating) : null,
+                                rt: null,
+                                source: 'omdb'
+                            };
+                            const rtEntry = d.Ratings?.find(r => r.Source === 'Rotten Tomatoes');
+                            if (rtEntry) result.rt = parseInt(rtEntry.Value);
+                            resolve(result);
+                        } catch { resolve(null); }
+                    },
+                    onerror() { resolve(null); },
+                    timeout: 5000
+                });
+            });
+        }
+
+        _tmdb(title, year) {
+            return new Promise(resolve => {
+                let url = `https://api.themoviedb.org/3/search/multi?api_key=${this.TMDB_KEY}&query=${encodeURIComponent(title)}`;
+                if (year) url += `&year=${year}`;
+
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url,
+                    onload(res) {
+                        try {
+                            const d = JSON.parse(res.responseText);
+                            const best = d.results?.[0];
+                            if (!best || !best.vote_average) return resolve(null);
+                            resolve({ tmdb: best.vote_average, source: 'tmdb' });
+                        } catch { resolve(null); }
+                    },
+                    onerror() { resolve(null); },
+                    timeout: 5000
+                });
+            });
         }
     }
 
@@ -533,8 +667,10 @@
                                 config.showFloatingButton, (val) => handleChange('showFloatingButton', val)),
                             SettingItem('Enhanced Title Cards', 'Add hover effects to browse tiles', 
                                 config.enhanceTitleCards, (val) => handleChange('enhanceTitleCards', val)),
-                            SettingItem('Show Watchlist Buttons', 'Add "Continue Watching" buttons to title cards', 
-                                config.showWatchlistButtons, (val) => handleChange('showWatchlistButtons', val))
+                            SettingItem('Show Watchlist Buttons', 'Add "Continue Watching" buttons to title cards',
+                                config.showWatchlistButtons, (val) => handleChange('showWatchlistButtons', val)),
+                            SettingItem('Show Ratings', 'Display IMDb/TMDB ratings on title cards and billboard',
+                                config.showRatings, (val) => handleChange('showRatings', val))
                         )
                     ),
                     
@@ -1293,10 +1429,11 @@
     // ============================================================
     
     class TitleCardEnhancer {
-        constructor(configManager, toastManager, watchlistManager) {
+        constructor(configManager, toastManager, watchlistManager, ratingsManager) {
             this.configManager = configManager;
             this.toastManager = toastManager;
             this.watchlistManager = watchlistManager;
+            this.ratingsManager = ratingsManager;
             this.observer = null;
         }
 
@@ -1401,6 +1538,62 @@
                 .ne-billboard-list-btn.in-list:hover {
                     background: rgba(124, 58, 237, 0.6);
                 }
+
+                .ne-rating-badge {
+                    position: absolute;
+                    bottom: 6px;
+                    left: 6px;
+                    padding: 2px 7px;
+                    background: rgba(0, 0, 0, 0.85);
+                    border-radius: 4px;
+                    font-size: 11px;
+                    font-weight: 700;
+                    z-index: 11;
+                    pointer-events: none;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    backdrop-filter: blur(4px);
+                    letter-spacing: 0.02em;
+                }
+                .ne-rating-badge .ne-icon {
+                    width: 10px;
+                    height: 10px;
+                }
+                .ne-rating-badge.good { color: #4ade80; }
+                .ne-rating-badge.mid  { color: #facc15; }
+                .ne-rating-badge.bad  { color: #f87171; }
+                .ne-rating-badge .ne-rt {
+                    color: #a1a1aa;
+                    font-weight: 500;
+                    margin-left: 2px;
+                }
+
+                .ne-billboard-rating {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 4px 10px;
+                    background: rgba(0, 0, 0, 0.7);
+                    border-radius: 4px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    margin-left: 0.5rem;
+                    backdrop-filter: blur(4px);
+                    pointer-events: none;
+                    white-space: nowrap;
+                }
+                .ne-billboard-rating .ne-icon {
+                    width: 12px;
+                    height: 12px;
+                }
+                .ne-billboard-rating.good { color: #4ade80; }
+                .ne-billboard-rating.mid  { color: #facc15; }
+                .ne-billboard-rating.bad  { color: #f87171; }
+                .ne-billboard-rating .ne-rt {
+                    color: #a1a1aa;
+                    font-weight: 500;
+                }
             `);
             
             this.observer = new MutationObserver(() => {
@@ -1453,6 +1646,11 @@
 
                     // Add progress badge (reads Netflix's native progress bar)
                     this.addProgressBadge(card);
+
+                    // Add rating badge if enabled
+                    if (this.configManager.get('showRatings')) {
+                        this.addRatingBadge(card);
+                    }
 
                     card.addEventListener('mouseenter', () => {
                         const link = card.querySelector('a.slider-refocus');
@@ -1548,6 +1746,46 @@
             container.appendChild(badge);
         }
 
+        addRatingBadge(card) {
+            const container = card.querySelector('.boxart-container');
+            if (!container || container.querySelector('.ne-rating-badge')) return;
+
+            const videoId = this.getCardVideoId(card);
+            if (!videoId) return;
+
+            const falcor = getNetflixFalcorCache();
+            const video = falcor?.videos?.[videoId];
+            const title = video?.title?.value || video?.summary?.value?.title;
+            const year = video?.releaseYear?.value;
+
+            // Fallback: use aria-label from link if no Falcor data
+            const displayTitle = title || card.querySelector('a.slider-refocus')?.getAttribute('aria-label');
+            if (!displayTitle) return;
+
+            // Async fetch — badge appears when data arrives
+            this.ratingsManager.getRating(displayTitle, year).then(rating => {
+                if (!rating || container.querySelector('.ne-rating-badge')) return;
+
+                const score = rating.imdb || rating.tmdb;
+                if (!score) return;
+
+                const tier = score >= 7 ? 'good' : score >= 5 ? 'mid' : 'bad';
+                const starIcon = ICONS.star.replace('width="24" height="24"', 'width="10" height="10"');
+
+                const badge = document.createElement('div');
+                badge.className = `ne-rating-badge ${tier}`;
+
+                let html = `${starIcon} ${score.toFixed(1)}`;
+                if (rating.rt) {
+                    html += `<span class="ne-rt">${rating.rt}%</span>`;
+                }
+                badge.innerHTML = html;
+
+                container.style.position = 'relative';
+                container.appendChild(badge);
+            });
+        }
+
         enhanceBillboard() {
             const btnContainer = document.querySelector('.billboard-links.button-layer.forward-leaning');
             if (!btnContainer || btnContainer.querySelector('.ne-billboard-list-btn')) return;
@@ -1613,6 +1851,38 @@
             });
 
             btnContainer.appendChild(button);
+
+            // Add rating badge to billboard
+            if (this.configManager.get('showRatings') && !btnContainer.querySelector('.ne-billboard-rating')) {
+                this.ratingsManager.getRating(title, null).then(rating => {
+                    if (!rating || btnContainer.querySelector('.ne-billboard-rating')) return;
+
+                    const score = rating.imdb || rating.tmdb;
+                    if (!score) return;
+
+                    const tier = score >= 7 ? 'good' : score >= 5 ? 'mid' : 'bad';
+                    const starIcon = ICONS.star.replace('width="24" height="24"', 'width="12" height="12"');
+
+                    const ratingEl = document.createElement('span');
+                    ratingEl.className = `ne-billboard-rating ${tier}`;
+
+                    let html = `${starIcon} ${score.toFixed(1)}`;
+                    if (rating.rt) {
+                        html += `<span class="ne-rt"> | ${rating.rt}%</span>`;
+                    }
+                    ratingEl.innerHTML = html;
+
+                    // Match height to sibling buttons
+                    if (moreInfoBtn) {
+                        const rect = moreInfoBtn.getBoundingClientRect();
+                        ratingEl.style.height = rect.height + 'px';
+                        ratingEl.style.display = 'inline-flex';
+                        ratingEl.style.alignItems = 'center';
+                    }
+
+                    btnContainer.appendChild(ratingEl);
+                });
+            }
         }
 
         destroy() {
@@ -1654,6 +1924,7 @@
             this.watchlistManager = null;
             this.settingsPanel = null;
             this.floatingButton = null;
+            this.ratingsManager = null;
             this.autoSkipManager = null;
             this.videoController = null;
             this.titleCardEnhancer = null;
@@ -1676,11 +1947,12 @@
             // Make watchlist globally accessible for React component
             window.netflixEnhancerWatchlist = this.watchlistManager;
             
+            this.ratingsManager = new RatingsManager();
             this.settingsPanel = new SettingsPanel(this.configManager, this.toastManager);
             this.floatingButton = new FloatingButton(this.settingsPanel, this.configManager);
             this.autoSkipManager = new AutoSkipManager(this.configManager, this.toastManager);
             this.videoController = new VideoController(this.configManager, this.toastManager);
-            this.titleCardEnhancer = new TitleCardEnhancer(this.configManager, this.toastManager, this.watchlistManager);
+            this.titleCardEnhancer = new TitleCardEnhancer(this.configManager, this.toastManager, this.watchlistManager, this.ratingsManager);
             
             // Apply custom styles
             applyCustomStyles(this.configManager);

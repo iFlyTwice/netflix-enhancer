@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.2.2';
+    const CORE_VERSION = '5.2.3';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -1296,15 +1296,10 @@
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    opacity: 0;
                     transition: all 0.3s ease;
                     z-index: 10;
                     color: white;
                     font-size: 14px;
-                }
-
-                .title-card-container:hover .ne-watchlist-btn {
-                    opacity: 1;
                 }
 
                 .ne-watchlist-btn:hover {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhancer Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.1.0
+// @version      3.2.0
 // @description  Modern Netflix enhancement with React UI, auto-skip, custom controls, and more
 // @author       iFlyTwice
 // @match        https://www.netflix.com/*
@@ -25,7 +25,7 @@
 (function() {
     'use strict';
 
-    console.log('[Netflix Enhancer Pro] v3.0 (React Edition) - Loading...');
+    console.log('[Netflix Enhancer Pro] v3.2 (React Edition) - Loading...');
     
     // Load Font Awesome CSS
     const fontAwesomeCSS = GM_getResourceText("FONTAWESOME_CSS");
@@ -485,7 +485,7 @@
                 
                 // Footer
                 React.createElement('div', { className: 'settings-footer' },
-                    React.createElement('span', { className: 'version-info' }, 'v3.0.0 (React)'),
+                    React.createElement('span', { className: 'version-info' }, 'v3.2.0 (React)'),
                     React.createElement('div', { style: { display: 'flex', gap: '12px' } },
                         React.createElement('button', { className: 'btn btn-secondary', onClick: handleReset }, 'Reset Defaults'),
                         React.createElement('button', { className: 'btn btn-primary', onClick: handleSave }, 'Save Changes')
@@ -1395,7 +1395,7 @@
                 this.toastManager.show('Netflix Enhancer Pro loaded! Press Ctrl+Shift+E for settings', 3500);
             }, 1000);
             
-            console.log('[Netflix Enhancer Pro] v3.0 (React Edition) - Fully initialized!');
+            console.log('[Netflix Enhancer Pro] v3.2.0 (React Edition) - Fully initialized!');
             console.log('[Netflix Enhancer Pro] Powered by React ' + React.version);
             console.log('[Netflix Enhancer Pro] Keyboard shortcuts:');
             console.log('   Ctrl+Shift+E - Open settings');

@@ -226,7 +226,7 @@
                     color: white;
                     padding: 12px 20px;
                     border-radius: 8px;
-                    border-left: 4px solid #71717a;
+                    border-left: 4px solid #a78bfa;
                     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
                     font-family: Netflix Sans, Helvetica Neue, Helvetica, Arial, sans-serif;
                     font-size: 14px;
@@ -648,7 +648,7 @@
                 
                 .tab-btn.active {
                     color: #fafafa;
-                    border-bottom-color: #71717a;
+                    border-bottom-color: #a78bfa;
                 }
                 
                 .tab-content {
@@ -715,7 +715,7 @@
                     transition: 0.3s; border-radius: 50%;
                 }
                 
-                input:checked + .toggle-slider { background-color: #71717a; }
+                input:checked + .toggle-slider { background-color: #7c3aed; }
                 input:checked + .toggle-slider:before { transform: translateX(24px); }
                 
                 .number-input, .select-input {
@@ -728,7 +728,7 @@
                 .select-input { cursor: pointer; }
                 
                 .number-input:focus, .select-input:focus {
-                    outline: none; border-color: #71717a;
+                    outline: none; border-color: #a78bfa;
                 }
                 
                 .settings-footer {
@@ -748,8 +748,8 @@
                     white-space: nowrap;
                 }
                 
-                .btn-primary { background: #71717a; color: white; }
-                .btn-primary:hover { background: #52525b; }
+                .btn-primary { background: #7c3aed; color: white; }
+                .btn-primary:hover { background: #6d28d9; }
                 .btn-secondary { background: #3f3f46; color: white; }
                 .btn-secondary:hover { background: #52525b; }
                 
@@ -828,7 +828,7 @@
                 }
                 
                 .watchlist-btn-visit:hover {
-                    background: #71717a;
+                    background: #7c3aed;
                 }
                 
                 .watchlist-btn-remove {
@@ -923,7 +923,7 @@
                     right: 20px;
                     width: 56px;
                     height: 56px;
-                    background: linear-gradient(135deg, #52525b, #3f3f46);
+                    background: linear-gradient(135deg, #7c3aed, #6d28d9);
                     color: white;
                     border-radius: 50%;
                     display: flex;
@@ -932,7 +932,7 @@
                     font-size: 24px;
                     cursor: pointer;
                     z-index: 999997;
-                    box-shadow: 0 4px 12px rgba(63, 63, 70, 0.4);
+                    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     user-select: none;
                     font-family: 'Font Awesome 6 Free';
@@ -940,8 +940,8 @@
                 
                 #ne-float-btn:hover {
                     transform: scale(1.1) rotate(5deg);
-                    box-shadow: 0 6px 20px rgba(63, 63, 70, 0.6);
-                    background: linear-gradient(135deg, #71717a, #52525b);
+                    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
+                    background: linear-gradient(135deg, #a78bfa, #7c3aed);
                 }
                 
                 #ne-float-btn:active {
@@ -1025,8 +1025,8 @@
             
             // Highlight button if enabled
             if (config.highlightSkipButton && shouldHighlight) {
-                button.style.border = '3px solid #00ff00';
-                button.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.6)';
+                button.style.border = '3px solid #a78bfa';
+                button.style.boxShadow = '0 0 15px rgba(167, 139, 250, 0.6)';
             }
             
             // Auto-click after delay (prevent duplicate clicks)
@@ -1219,14 +1219,14 @@
                 }
                 
                 .ne-watchlist-btn:hover {
-                    background: #71717a;
-                    border-color: #71717a;
+                    background: #7c3aed;
+                    border-color: #7c3aed;
                     transform: scale(1.1);
                 }
                 
                 .ne-watchlist-btn.in-watchlist {
-                    background: #71717a;
-                    border-color: #71717a;
+                    background: #7c3aed;
+                    border-color: #7c3aed;
                     opacity: 1;
                 }
             `);

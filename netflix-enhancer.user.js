@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Netflix Enhancer Pro
 // @namespace    http://tampermonkey.net/
-// @version      4.0.7
-// @description  Modern Netflix enhancement with React UI, auto-skip, custom controls, and more - INSTANT UPDATES!
+// @version      1.0.0
+// @description  Bootstrap loader for Netflix Enhancer - fetches latest core on every page load
 // @author       iFlyTwice
 // @match        https://www.netflix.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=netflix.com

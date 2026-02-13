@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.2.0';
+    const CORE_VERSION = '5.2.1';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -1310,28 +1310,20 @@
 
                 .ne-progress-badge {
                     position: absolute;
-                    bottom: 12px;
-                    left: 8px;
-                    padding: 4px 8px;
-                    background: rgba(20, 20, 20, 0.95);
-                    border-radius: 4px;
+                    top: 6px;
+                    left: 6px;
+                    padding: 3px 7px;
+                    background: rgba(0, 0, 0, 0.8);
+                    border-radius: 3px;
                     font-size: 11px;
-                    color: white;
+                    color: rgba(255, 255, 255, 0.9);
                     font-weight: 600;
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
                     z-index: 11;
-                    backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                }
-
-                .title-card-container:hover .ne-progress-badge {
-                    opacity: 1;
+                    pointer-events: none;
                 }
 
                 .ne-progress-badge.almost-done {
-                    background: rgba(124, 58, 237, 0.95);
-                    border-color: rgba(124, 58, 237, 0.3);
+                    background: rgba(124, 58, 237, 0.85);
                 }
             `);
             

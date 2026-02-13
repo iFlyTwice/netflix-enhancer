@@ -1343,18 +1343,21 @@
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 0.6rem 1.5rem;
+                    padding: 8.0444px 24.1332px 8.0444px 20.111px;
                     background: rgba(109, 109, 110, 0.7);
                     border: none;
                     border-radius: 4px;
                     color: white;
-                    font-family: inherit;
-                    font-size: inherit;
-                    font-weight: inherit;
+                    font-family: "Netflix Sans", "Helvetica Neue", "Segoe UI", Roboto, Ubuntu, sans-serif;
+                    font-size: 10.0555px;
+                    font-weight: 400;
+                    line-height: 8.848841px;
                     cursor: pointer;
                     transition: background 0.2s ease;
                     margin-left: 0.5rem;
                     white-space: nowrap;
+                    height: 40.1875px;
+                    box-sizing: border-box;
                 }
 
                 .ne-billboard-list-btn:hover {

@@ -1523,7 +1523,8 @@
             if (this.pipButton && document.contains(this.pipButton)) return;
             this.pipButton = null;
 
-            const anchorBtn = document.querySelector('[data-uia="control-audio-subtitle"]') ||
+            const anchorBtn = document.querySelector('[data-uia="control-next"]') ||
+                              document.querySelector('[data-uia="control-audio-subtitle"]') ||
                               document.querySelector('[data-uia="control-fullscreen-enter"]') ||
                               document.querySelector('[data-uia="control-fullscreen-exit"]');
             if (!anchorBtn) return;

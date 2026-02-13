@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Netflix Enhancer Pro
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
-// @description  Bootstrap loader for Netflix Enhancer - fetches latest core on every page load
+// @version      1.0.1
+// @description  Bootstrap loader for Netflix Enhancer - fetches latest core via commit SHA for instant updates
 // @author       iFlyTwice
 // @match        https://www.netflix.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=netflix.com
@@ -21,6 +21,7 @@
 // @grant        GM.setValue
 // @grant        GM_xmlhttpRequest
 // @connect      github.com
+// @connect      api.github.com
 // @connect      cdn.jsdelivr.net
 // @connect      raw.githubusercontent.com
 // @run-at       document-start
@@ -32,9 +33,9 @@
     console.log('[Netflix Enhancer Pro] Loader bootstrap - Fetching latest core...');
     window.__NETFLIX_ENHANCER_LOADER_VERSION = 'bootstrap';
 
-    const CORE_URL = 'https://github.com/iFlyTwice/netflix-enhancer/releases/latest/download/netflix-enhancer-core.js';
-    const SECONDARY_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/refs/heads/main/netflix-enhancer-core.js';
-    const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
+    const REPO_API = 'https://api.github.com/repos/iFlyTwice/netflix-enhancer/commits/main';
+    const FALLBACK_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/refs/heads/main/netflix-enhancer-core.js';
+    const CDN_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
     const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     function extractCoreVersion(code) {
@@ -51,38 +52,44 @@
         eval(code);
     }
 
+    // Fetch latest commit SHA from GitHub API for instant updates
     GM_xmlhttpRequest({
         method: 'GET',
-        url: `${CORE_URL}?v=${cacheBuster}`,
+        url: REPO_API,
         headers: {
+            'Accept': 'application/vnd.github.v3+json',
             'Cache-Control': 'no-cache, no-store, max-age=0',
             'Pragma': 'no-cache'
         },
         onload(response) {
             if (response.status === 200) {
                 try {
-                    executeCore(response.responseText, 'github-release-latest');
+                    const data = JSON.parse(response.responseText);
+                    const sha = data.sha;
+                    if (sha) {
+                        console.log(`[Netflix Enhancer Pro] Latest commit: ${sha.substring(0, 7)}`);
+                        loadFromCommitSha(sha);
+                        return;
+                    }
                 } catch (error) {
-                    console.error('[Netflix Enhancer Pro] Error executing core:', error);
-                    loadSecondary();
+                    console.warn('[Netflix Enhancer Pro] Error parsing commit data:', error);
                 }
-                return;
             }
-
-            console.warn('[Netflix Enhancer Pro] Primary source failed, trying secondary...');
-            loadSecondary();
+            console.warn('[Netflix Enhancer Pro] GitHub API failed, using branch fallback...');
+            loadFallback();
         },
         onerror() {
-            console.warn('[Netflix Enhancer Pro] Primary source unavailable, trying secondary...');
-            loadSecondary();
+            console.warn('[Netflix Enhancer Pro] GitHub API unavailable, using fallback...');
+            loadFallback();
         },
-        timeout: 5000
+        timeout: 3000
     });
 
-    function loadSecondary() {
+    function loadFromCommitSha(sha) {
+        const commitUrl = `https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/${sha}/netflix-enhancer-core.js`;
         GM_xmlhttpRequest({
             method: 'GET',
-            url: `${SECONDARY_URL}?v=${cacheBuster}`,
+            url: commitUrl,
             headers: {
                 'Cache-Control': 'no-cache, no-store, max-age=0',
                 'Pragma': 'no-cache'
@@ -90,19 +97,18 @@
             onload(response) {
                 if (response.status === 200) {
                     try {
-                        executeCore(response.responseText, 'github-raw');
+                        executeCore(response.responseText, `commit-${sha.substring(0, 7)}`);
                     } catch (error) {
-                        console.error('[Netflix Enhancer Pro] Error executing secondary core:', error);
+                        console.error('[Netflix Enhancer Pro] Error executing core:', error);
                         loadFallback();
                     }
                     return;
                 }
-
-                console.warn('[Netflix Enhancer Pro] Secondary source failed, trying fallback...');
+                console.warn('[Netflix Enhancer Pro] Commit SHA fetch failed, using fallback...');
                 loadFallback();
             },
             onerror() {
-                console.warn('[Netflix Enhancer Pro] Secondary source unavailable, using fallback...');
+                console.warn('[Netflix Enhancer Pro] Commit SHA unavailable, using fallback...');
                 loadFallback();
             },
             timeout: 5000
@@ -120,9 +126,38 @@
             onload(response) {
                 if (response.status === 200) {
                     try {
+                        executeCore(response.responseText, 'github-raw-branch');
+                    } catch (error) {
+                        console.error('[Netflix Enhancer Pro] Error executing fallback core:', error);
+                        loadCdn();
+                    }
+                    return;
+                }
+                console.warn('[Netflix Enhancer Pro] Branch fallback failed, trying CDN...');
+                loadCdn();
+            },
+            onerror() {
+                console.warn('[Netflix Enhancer Pro] Branch fallback unavailable, using CDN...');
+                loadCdn();
+            },
+            timeout: 5000
+        });
+    }
+
+    function loadCdn() {
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: `${CDN_URL}?v=${cacheBuster}`,
+            headers: {
+                'Cache-Control': 'no-cache, no-store, max-age=0',
+                'Pragma': 'no-cache'
+            },
+            onload(response) {
+                if (response.status === 200) {
+                    try {
                         executeCore(response.responseText, 'jsdelivr-cdn');
                     } catch (error) {
-                        console.error('[Netflix Enhancer Pro] Error executing core:', error);
+                        console.error('[Netflix Enhancer Pro] Error executing CDN core:', error);
                     }
                 } else {
                     console.error('[Netflix Enhancer Pro] Failed to load core application');

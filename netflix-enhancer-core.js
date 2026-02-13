@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.6.0';
+    const CORE_VERSION = '5.7.0';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
 
@@ -26,6 +26,7 @@
         zap:         icon('<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>'),
         info:        icon('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'),
         star:        icon('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'),
+        pip:         icon('<rect x="2" y="3" width="20" height="14" rx="2"/><rect x="11" y="10" width="9" height="6" rx="1"/>'),
     };
 
     // Helper: create a React element from an icon SVG string
@@ -164,6 +165,9 @@
         showWatchlistButtons: true,
         showRatings: true,
         
+        // Picture-in-Picture
+        enablePiP: true,
+
         // Custom Styles
         enableCustomStyles: true,
         
@@ -648,7 +652,9 @@
                             SettingItem('Show Notifications', 'Display toast notifications for actions',
                                 config.showNotifications, (val) => handleChange('showNotifications', val)),
                             SettingItem('Show Floating Button', 'Display settings button on page',
-                                config.showFloatingButton, (val) => handleChange('showFloatingButton', val))
+                                config.showFloatingButton, (val) => handleChange('showFloatingButton', val)),
+                            SettingItem('Picture-in-Picture', 'Add PiP button to player controls (P key shortcut)',
+                                config.enablePiP, (val) => handleChange('enablePiP', val))
                         ),
                         React.createElement(CollapsibleGroup, { title: 'Browse Enhancements', icon: 'star' },
                             SettingItem('Enhanced Title Cards', 'Add hover effects to browse tiles',
@@ -1481,6 +1487,116 @@
     }
 
     // ============================================================
+    // PICTURE-IN-PICTURE MANAGER
+    // ============================================================
+
+    class PiPManager {
+        constructor(configManager, toastManager) {
+            this.configManager = configManager;
+            this.toastManager = toastManager;
+            this.pipButton = null;
+            this.observer = null;
+        }
+
+        init() {
+            if (!this.configManager.get('enablePiP')) return;
+            this.setupObserver();
+            this.setupKeyboardShortcut();
+            this.configManager.onChange('enablePiP', (enabled) => {
+                if (enabled) {
+                    this.setupObserver();
+                } else {
+                    this.cleanup();
+                }
+            });
+        }
+
+        setupObserver() {
+            if (this.observer) return;
+            this.observer = new MutationObserver(() => this.tryInjectButton());
+            this.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+            this.tryInjectButton();
+        }
+
+        tryInjectButton() {
+            if (!this.configManager.get('enablePiP')) return;
+            if (this.pipButton && document.contains(this.pipButton)) return;
+            this.pipButton = null;
+
+            const fullscreenBtn = document.querySelector('[data-uia="control-fullscreen-enter"]') ||
+                                  document.querySelector('[data-uia="control-fullscreen-exit"]');
+            if (!fullscreenBtn) return;
+
+            const btn = document.createElement('button');
+            btn.setAttribute('data-uia', 'control-pip');
+            btn.setAttribute('aria-label', 'Picture in Picture');
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><rect x="11" y="10" width="9" height="6" rx="1"/></svg>`;
+
+            // Match Netflix button styling by copying the fullscreen button's class
+            btn.className = fullscreenBtn.className;
+            btn.style.cssText = 'cursor: pointer;';
+
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.togglePiP();
+            });
+
+            fullscreenBtn.parentElement.insertBefore(btn, fullscreenBtn);
+            this.pipButton = btn;
+            console.log('[Netflix Enhancer] PiP button injected into player controls');
+        }
+
+        async togglePiP() {
+            const video = document.querySelector('video');
+            if (!video) {
+                this.toastManager.show('No video found', 1500);
+                return;
+            }
+
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+                this.toastManager.show('Exited Picture-in-Picture', 1500);
+                return;
+            }
+
+            // Remove Netflix's PiP block
+            video.removeAttribute('disablePictureInPicture');
+
+            try {
+                await video.requestPictureInPicture();
+                this.toastManager.show('Picture-in-Picture enabled', 1500);
+            } catch (err) {
+                console.warn('[Netflix Enhancer] PiP failed:', err);
+                this.toastManager.show('PiP not available', 1500);
+            }
+        }
+
+        setupKeyboardShortcut() {
+            document.addEventListener('keydown', (e) => {
+                if (!this.configManager.get('enablePiP')) return;
+                if (!this.configManager.get('enableKeyboardShortcuts')) return;
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+                    e.preventDefault();
+                    this.togglePiP();
+                }
+            });
+        }
+
+        cleanup() {
+            if (this.pipButton && this.pipButton.parentElement) {
+                this.pipButton.remove();
+                this.pipButton = null;
+            }
+            if (this.observer) {
+                this.observer.disconnect();
+                this.observer = null;
+            }
+        }
+    }
+
+    // ============================================================
     // TITLE CARD ENHANCER
     // ============================================================
     
@@ -1977,6 +2093,7 @@
             this.ratingsManager = null;
             this.autoSkipManager = null;
             this.videoController = null;
+            this.pipManager = null;
             this.titleCardEnhancer = null;
         }
 
@@ -2002,6 +2119,7 @@
             this.floatingButton = new FloatingButton(this.settingsPanel, this.configManager);
             this.autoSkipManager = new AutoSkipManager(this.configManager, this.toastManager);
             this.videoController = new VideoController(this.configManager, this.toastManager);
+            this.pipManager = new PiPManager(this.configManager, this.toastManager);
             this.titleCardEnhancer = new TitleCardEnhancer(this.configManager, this.toastManager, this.watchlistManager, this.ratingsManager);
             
             // Apply custom styles
@@ -2009,6 +2127,7 @@
             
             // Initialize features
             this.autoSkipManager.init();
+            this.pipManager.init();
             this.titleCardEnhancer.init();
             this.floatingButton.create();
             
@@ -2030,6 +2149,7 @@
             console.log('   S - Toggle playback speed');
             console.log('   R - Rewind 10 seconds');
             console.log('   F - Forward 10 seconds');
+            console.log('   P - Toggle Picture-in-Picture');
         }
 
         waitForBody() {

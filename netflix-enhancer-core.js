@@ -1523,9 +1523,10 @@
             if (this.pipButton && document.contains(this.pipButton)) return;
             this.pipButton = null;
 
-            const fullscreenBtn = document.querySelector('[data-uia="control-fullscreen-enter"]') ||
-                                  document.querySelector('[data-uia="control-fullscreen-exit"]');
-            if (!fullscreenBtn) return;
+            const anchorBtn = document.querySelector('[data-uia="control-audio-subtitle"]') ||
+                              document.querySelector('[data-uia="control-fullscreen-enter"]') ||
+                              document.querySelector('[data-uia="control-fullscreen-exit"]');
+            if (!anchorBtn) return;
 
             const btn = document.createElement('button');
             btn.setAttribute('data-uia', 'control-pip');
@@ -1543,7 +1544,7 @@
                 this.togglePiP();
             });
 
-            fullscreenBtn.parentElement.insertBefore(btn, fullscreenBtn);
+            anchorBtn.parentElement.insertBefore(btn, anchorBtn);
             this.pipButton = btn;
             console.log('[Netflix Enhancer] PiP button injected into player controls');
         }

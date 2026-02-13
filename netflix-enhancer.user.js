@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhancer Pro
 // @namespace    http://tampermonkey.net/
-// @version      4.0.1
+// @version      4.0.2
 // @description  Modern Netflix enhancement with React UI, auto-skip, custom controls, and more - INSTANT UPDATES!
 // @author       iFlyTwice
 // @match        https://www.netflix.com/*
@@ -28,10 +28,10 @@
 (function() {
     'use strict';
 
-    console.log('[Netflix Enhancer Pro] v4.0.1 Loader - Fetching latest code...');
+    console.log('[Netflix Enhancer Pro] v4.0.2 Loader - Fetching latest code...');
 
-    const CORE_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
-    const FALLBACK_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/main/netflix-enhancer-core.js';
+    const CORE_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/main/netflix-enhancer-core.js';
+    const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
     const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     GM_xmlhttpRequest({
@@ -52,11 +52,11 @@
                 return;
             }
 
-            console.warn('[Netflix Enhancer Pro] CDN failed, trying fallback...');
+            console.warn('[Netflix Enhancer Pro] Primary source failed, trying fallback...');
             loadFallback();
         },
         onerror() {
-            console.warn('[Netflix Enhancer Pro] CDN unavailable, using fallback...');
+            console.warn('[Netflix Enhancer Pro] Primary source unavailable, using fallback...');
             loadFallback();
         },
         timeout: 5000

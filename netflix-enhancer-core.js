@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '4.0.9';
+    const CORE_VERSION = '5.0.0';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     

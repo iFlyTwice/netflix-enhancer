@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhancer Pro
 // @namespace    http://tampermonkey.net/
-// @version      4.0.4
+// @version      4.0.5
 // @description  Modern Netflix enhancement with React UI, auto-skip, custom controls, and more - INSTANT UPDATES!
 // @author       iFlyTwice
 // @match        https://www.netflix.com/*
@@ -29,13 +29,13 @@
 (function() {
     'use strict';
 
-    console.log('[Netflix Enhancer Pro] v4.0.4 Loader - Fetching latest code...');
-    window.__NETFLIX_ENHANCER_LOADER_VERSION = '4.0.4';
+    console.log('[Netflix Enhancer Pro] v4.0.5 Loader - Fetching latest code...');
+    window.__NETFLIX_ENHANCER_LOADER_VERSION = '4.0.5';
 
     const CORE_URL = 'https://github.com/iFlyTwice/netflix-enhancer/releases/latest/download/netflix-enhancer-core.js';
     const SECONDARY_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/refs/heads/main/netflix-enhancer-core.js';
     const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
-    const MIN_CORE_VERSION = '4.0.4';
+    const MIN_CORE_VERSION = '4.0.5';
     const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     function compareVersions(a, b) {

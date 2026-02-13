@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.2.1';
+    const CORE_VERSION = '5.2.2';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -158,17 +158,28 @@
         }
 
         async init() {
-            const saved = await GM.getValue('netflix_enhancer_config', {});
+            let saved = {};
+            try {
+                saved = await GM.getValue('netflix_enhancer_config', {});
+                if (typeof saved === 'string') saved = JSON.parse(saved);
+            } catch (e) {
+                console.warn('[Netflix Enhancer] Failed to load config, using defaults:', e);
+            }
+            console.log('[Netflix Enhancer] Loaded config:', JSON.stringify(saved));
+
             this.config = new Proxy(
                 { ...this.defaults, ...saved },
                 {
                     set: (target, prop, value) => {
                         const oldValue = target[prop];
                         target[prop] = value;
-                        
-                        // Persist to storage
-                        GM.setValue('netflix_enhancer_config', target);
-                        
+
+                        // Persist to storage as plain object
+                        const plain = { ...target };
+                        GM.setValue('netflix_enhancer_config', plain).catch(err => {
+                            console.error('[Netflix Enhancer] Config save failed:', err);
+                        });
+
                         // Notify listeners
                         this.notifyListeners(prop, value, oldValue);
                         return true;

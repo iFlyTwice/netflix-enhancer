@@ -1,17 +1,40 @@
     'use strict';
 
-    const CORE_VERSION = '5.3.0';
+    const CORE_VERSION = '5.4.0';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
-    
-    // Load Font Awesome CSS
-    const fontAwesomeCSS = GM_getResourceText("FONTAWESOME_CSS");
-    GM_addStyle(fontAwesomeCSS);
-    
+
     // React globals from @require
     const React = window.React;
     const ReactDOM = window.ReactDOM;
     const { useState, useEffect } = React;
+
+    // ── Lucide-style inline SVG icons (24x24, stroke-based) ──
+    const SVG_ATTRS = 'xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+    const icon = (inner, cls = '') => `<svg ${SVG_ATTRS} class="ne-icon ${cls}">${inner}</svg>`;
+    const ICONS = {
+        plus:        icon('<path d="M5 12h14"/><path d="M12 5v14"/>'),
+        check:       icon('<path d="M20 6 9 17l-5-5"/>'),
+        x:           icon('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
+        list:        icon('<path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/>'),
+        externalLink:icon('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'),
+        trash:       icon('<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+        film:        icon('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/>'),
+        skipForward: icon('<path d="M21 4v16"/><path d="M6.029 4.285A2 2 0 0 0 3 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/>'),
+        rewind:      icon('<path d="M12 6a2 2 0 0 0-3.414-1.414l-6 6a2 2 0 0 0 0 2.828l6 6A2 2 0 0 0 12 18z"/><path d="M22 6a2 2 0 0 0-3.414-1.414l-6 6a2 2 0 0 0 0 2.828l6 6A2 2 0 0 0 22 18z"/>'),
+        fastForward: icon('<path d="M12 6a2 2 0 0 1 3.414-1.414l6 6a2 2 0 0 1 0 2.828l-6 6A2 2 0 0 1 12 18z"/><path d="M2 6a2 2 0 0 1 3.414-1.414l6 6a2 2 0 0 1 0 2.828l-6 6A2 2 0 0 1 2 18z"/>'),
+        zap:         icon('<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>'),
+        info:        icon('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'),
+    };
+
+    // Helper: create a React element from an icon SVG string
+    function IconReact({ name, size = 16, className = '' }) {
+        return React.createElement('span', {
+            className: `ne-icon-wrap ${className}`,
+            style: { display: 'inline-flex', width: size, height: size },
+            dangerouslySetInnerHTML: { __html: ICONS[name]?.replace('width="24" height="24"', `width="${size}" height="${size}"`) || '' }
+        });
+    }
 
     function getNetflixReactModels() {
         return window.netflix?.reactContext?.models || null;
@@ -249,7 +272,7 @@
             // Check if already exists
             const exists = this.watchlist.find(w => w.id === item.id);
             if (exists) {
-                this.toastManager.show('Already in Continue Watching', 1500, 'fa-check');
+                this.toastManager.show('Already in Continue Watching', 1500, 'check');
                 return;
             }
 
@@ -263,7 +286,7 @@
 
             this.watchlist.unshift(watchItem);
             localStorage.setItem('netflix_enhancer_watchlist', JSON.stringify(this.watchlist));
-            this.toastManager.show(`Added "${item.title}" to Continue Watching`, 2000, 'fa-plus');
+            this.toastManager.show(`Added "${item.title}" to Continue Watching`, 2000, 'plus');
         }
 
         async removeFromWatchlist(id) {
@@ -271,14 +294,14 @@
             this.watchlist = this.watchlist.filter(w => w.id !== id);
             localStorage.setItem('netflix_enhancer_watchlist', JSON.stringify(this.watchlist));
             if (item) {
-                this.toastManager.show(`Removed "${item.title}"`, 1500, 'fa-trash');
+                this.toastManager.show(`Removed "${item.title}"`, 1500, 'trash');
             }
         }
 
         async clearWatchlist() {
             this.watchlist = [];
             localStorage.setItem('netflix_enhancer_watchlist', JSON.stringify([]));
-            this.toastManager.show('Continue Watching cleared', 1500, 'fa-check');
+            this.toastManager.show('Continue Watching cleared', 1500, 'check');
         }
 
         getWatchlist() {
@@ -359,20 +382,23 @@
                     align-items: center;
                     justify-content: center;
                     margin-right: 8px;
-                    font-size: 16px;
-                    width: 20px;
-                    font-family: 'Font Awesome 6 Free';
+                    width: 16px;
+                    height: 16px;
+                }
+                .ne-toast-icon .ne-icon {
+                    width: 16px;
+                    height: 16px;
                 }
             `);
         }
 
-        show(message, duration = 3000, icon = '') {
+        show(message, duration = 3000, iconName = '') {
             if (!this.configManager.get('showNotifications')) return;
             if (!this.container) this.init();
-            
+
             const toast = document.createElement('div');
             toast.className = 'ne-toast';
-            const iconHTML = icon ? `<i class="ne-toast-icon fa-solid ${icon}"></i>` : '';
+            const iconHTML = iconName && ICONS[iconName] ? `<span class="ne-toast-icon">${ICONS[iconName].replace('width="24" height="24"', 'width="16" height="16"')}</span>` : '';
             toast.innerHTML = `${iconHTML}${message}`;
             
             this.container.appendChild(toast);
@@ -444,7 +470,7 @@
                         id: 'close-settings', 
                         'aria-label': 'Close settings',
                         onClick: onClose
-                    }, React.createElement('i', { className: 'fa-solid fa-xmark' }))
+                    }, React.createElement(IconReact, { name: 'x', size: 18 }))
                 ),
                 
                 // Tabs
@@ -532,7 +558,7 @@
                             ),
                             watchlist.length === 0 ? 
                                 React.createElement('div', { className: 'watchlist-empty' },
-                                    React.createElement('i', { className: 'fa-solid fa-list' }),
+                                    React.createElement(IconReact, { name: 'list', size: 14 }),
                                     React.createElement('p', null, 'No items yet'),
                                     React.createElement('p', { className: 'small' }, 'Browse Netflix and click + on title cards')
                                 ) :
@@ -550,7 +576,7 @@
                                                     className: 'watchlist-btn watchlist-btn-visit',
                                                     onClick: () => window.location.href = item.url,
                                                     title: 'Visit'
-                                                }, React.createElement('i', { className: 'fa-solid fa-arrow-right' })),
+                                                }, React.createElement(IconReact, { name: 'externalLink', size: 14 })),
                                                 React.createElement('button', {
                                                     className: 'watchlist-btn watchlist-btn-remove',
                                                     onClick: () => {
@@ -558,7 +584,7 @@
                                                         setWatchlist(watchlistManager.getWatchlist());
                                                     },
                                                     title: 'Remove'
-                                                }, React.createElement('i', { className: 'fa-solid fa-trash' }))
+                                                }, React.createElement(IconReact, { name: 'trash', size: 14 }))
                                             )
                                         )
                                     )
@@ -667,17 +693,12 @@
             // Create React root in Shadow DOM
             this.reactRoot = ReactDOM.createRoot(shadow);
             
-            // Load Font Awesome in Shadow DOM
-            const faLink = document.createElement('link');
-            faLink.rel = 'stylesheet';
-            faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
-            faLink.crossOrigin = 'anonymous';
-            shadow.appendChild(faLink);
-            
             const style = document.createElement('style');
             style.textContent = `
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                
+                .ne-icon-wrap { display: inline-flex; align-items: center; justify-content: center; }
+                .ne-icon-wrap svg { width: 100%; height: 100%; }
+
                 .settings-overlay {
                     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
                     background: rgba(0, 0, 0, 0.85);
@@ -1009,7 +1030,7 @@
             
             this.button = document.createElement('div');
             this.button.id = 'ne-float-btn';
-            this.button.innerHTML = '<i class="fa-solid fa-film"></i>';
+            this.button.innerHTML = ICONS.film;
             this.button.title = 'Netflix Enhancer Settings (Ctrl+Shift+E)';
             
             GM_addStyle(`
@@ -1025,13 +1046,15 @@
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 24px;
                     cursor: pointer;
                     z-index: 999997;
                     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     user-select: none;
-                    font-family: 'Font Awesome 6 Free';
+                }
+                #ne-float-btn .ne-icon {
+                    width: 24px;
+                    height: 24px;
                 }
                 
                 #ne-float-btn:hover {
@@ -1134,7 +1157,7 @@
                     if (this.isVisible(button)) {
                         button.click();
                         this.lastSkipTime = Date.now();
-                        this.toastManager.show(`Skipped ${type}`, 1500, 'fa-forward-step');
+                        this.toastManager.show(`Skipped ${type}`, 1500, 'skipForward');
                         console.log(`[Netflix Enhancer] Auto-skipped ${type}`);
                     }
                 }, config.skipDelay);
@@ -1235,14 +1258,14 @@
                 if (key === 'r') {
                     e.preventDefault();
                     this.video.currentTime = Math.max(0, this.video.currentTime - 10);
-                    this.toastManager.show('Rewinded 10s', 1000, 'fa-backward-fast');
+                    this.toastManager.show('Rewinded 10s', 1000, 'rewind');
                 }
                 
                 // F - Forward 10 seconds
                 if (key === 'f') {
                     e.preventDefault();
                     this.video.currentTime = Math.min(this.video.duration, this.video.currentTime + 10);
-                    this.toastManager.show('Forwarded 10s', 1000, 'fa-forward-fast');
+                    this.toastManager.show('Forwarded 10s', 1000, 'fastForward');
                 }
             });
             
@@ -1260,7 +1283,7 @@
             this.video.playbackRate = newSpeed;
             this.currentSpeed = newSpeed;
             
-            this.toastManager.show(`Speed: ${newSpeed}x`, 1500, 'fa-bolt');
+            this.toastManager.show(`Speed: ${newSpeed}x`, 1500, 'zap');
             console.log(`[Netflix Enhancer] Playback speed: ${newSpeed}x`);
         }
     }
@@ -1306,7 +1329,10 @@
                     transition: all 0.3s ease;
                     z-index: 10;
                     color: white;
-                    font-size: 14px;
+                }
+                .ne-watchlist-btn .ne-icon {
+                    width: 14px;
+                    height: 14px;
                 }
 
                 .ne-watchlist-btn:hover {
@@ -1352,6 +1378,16 @@
                     margin-left: 0.5rem;
                     white-space: nowrap;
                     box-sizing: border-box;
+                }
+                .ne-billboard-list-btn .ne-icon {
+                    width: 1em;
+                    height: 1em;
+                }
+
+                .ne-progress-badge .ne-icon {
+                    width: 10px;
+                    height: 10px;
+                    vertical-align: middle;
                 }
 
                 .ne-billboard-list-btn:hover {
@@ -1442,13 +1478,13 @@
             
             const button = document.createElement('button');
             button.className = 'ne-watchlist-btn';
-            button.innerHTML = '<i class="fa-solid fa-plus"></i>';
+            button.innerHTML = ICONS.plus;
             button.title = 'Add to Continue Watching';
             
             // Check if already in watchlist
             if (this.watchlistManager.isInWatchlist(id)) {
                 button.classList.add('in-watchlist');
-                button.innerHTML = '<i class="fa-solid fa-check"></i>';
+                button.innerHTML = ICONS.check;
                 button.title = 'In Continue Watching';
             }
             
@@ -1459,7 +1495,7 @@
                 if (this.watchlistManager.isInWatchlist(id)) {
                     this.watchlistManager.removeFromWatchlist(id);
                     button.classList.remove('in-watchlist');
-                    button.innerHTML = '<i class="fa-solid fa-plus"></i>';
+                    button.innerHTML = ICONS.plus;
                     button.title = 'Add to Continue Watching';
                 } else {
                     this.watchlistManager.addToWatchlist({
@@ -1468,7 +1504,7 @@
                         url
                     });
                     button.classList.add('in-watchlist');
-                    button.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    button.innerHTML = ICONS.check;
                     button.title = 'In Continue Watching';
                 }
             });
@@ -1503,7 +1539,7 @@
 
             if (isAlmostFinished) {
                 badge.classList.add('almost-done');
-                badge.innerHTML = `<i class="fa-solid fa-check"></i> ${Math.round(progressPercent)}% watched`;
+                badge.innerHTML = `${ICONS.check} ${Math.round(progressPercent)}% watched`;
             } else {
                 badge.textContent = `${Math.round(progressPercent)}% watched`;
             }
@@ -1557,8 +1593,8 @@
 
             const inList = this.watchlistManager.isInWatchlist(videoId);
             button.innerHTML = inList
-                ? '<i class="fa-solid fa-check"></i> In My List'
-                : '<i class="fa-solid fa-plus"></i> My List';
+                ? `${ICONS.check} In My List`
+                : `${ICONS.plus} My List`;
             if (inList) button.classList.add('in-list');
 
             button.addEventListener('click', (e) => {
@@ -1568,11 +1604,11 @@
                 if (this.watchlistManager.isInWatchlist(videoId)) {
                     this.watchlistManager.removeFromWatchlist(videoId);
                     button.classList.remove('in-list');
-                    button.innerHTML = '<i class="fa-solid fa-plus"></i> My List';
+                    button.innerHTML = `${ICONS.plus} My List`;
                 } else {
                     this.watchlistManager.addToWatchlist({ id: videoId, title, url: window.location.href });
                     button.classList.add('in-list');
-                    button.innerHTML = '<i class="fa-solid fa-check"></i> In My List';
+                    button.innerHTML = `${ICONS.check} In My List`;
                 }
             });
 
@@ -1661,7 +1697,7 @@
             setTimeout(() => {
                 const runtimeCoreVersion = window.__NETFLIX_ENHANCER_CORE_VERSION || CORE_VERSION;
                 const coreSource = window.__NETFLIX_ENHANCER_CORE_SOURCE || 'unknown';
-                this.toastManager.show(`Netflix Enhancer v${runtimeCoreVersion} • ${coreSource}`, 2200, 'fa-circle-info');
+                this.toastManager.show(`Netflix Enhancer v${runtimeCoreVersion} • ${coreSource}`, 2200, 'info');
             }, 1000);
             
             const runtimeCoreVersion = window.__NETFLIX_ENHANCER_CORE_VERSION || CORE_VERSION;

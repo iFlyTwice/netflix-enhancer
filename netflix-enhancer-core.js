@@ -1348,8 +1348,9 @@
                     border: none;
                     border-radius: 4px;
                     color: white;
-                    font-size: 1rem;
-                    font-weight: 600;
+                    font-family: inherit;
+                    font-size: inherit;
+                    font-weight: inherit;
                     cursor: pointer;
                     transition: background 0.2s ease;
                     margin-left: 0.5rem;

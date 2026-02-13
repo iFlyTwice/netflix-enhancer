@@ -1333,7 +1333,9 @@
         }
 
         isVisible(element) {
-            return element && element.offsetParent !== null;
+            if (!element) return false;
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
         }
 
         handleSkipButton(button, type, shouldHighlight = true) {

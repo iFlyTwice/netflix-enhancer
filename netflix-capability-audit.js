@@ -654,8 +654,15 @@
         totalFeatures: Object.keys(report.featureMatrix).length
     };
 
-    // Output
-    const json = JSON.stringify(report, null, 2);
+    // Output — handle circular references
+    const seen = new WeakSet();
+    const json = JSON.stringify(report, (key, value) => {
+        if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) return '[Circular]';
+            seen.add(value);
+        }
+        return value;
+    }, 2);
     copy(json);
     console.log('%c[Netflix Capability Audit]', 'color: #7c3aed; font-weight: bold; font-size: 14px', 'Full report copied to clipboard!');
     console.log(`📊 ${report._summary.feasibleFeatures}/${report._summary.totalFeatures} features feasible on this page`);

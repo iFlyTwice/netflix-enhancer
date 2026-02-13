@@ -1537,18 +1537,22 @@
             const button = document.createElement('button');
             button.className = 'ne-billboard-list-btn';
 
-            // Copy size/font from the Play button so they always match
-            const playBtn = btnContainer.querySelector('[data-uia="play-button"]');
-            const refBtn = playBtn || btnContainer.querySelector('[data-uia="billboard-more-info"]');
-            if (refBtn) {
-                const rect = refBtn.getBoundingClientRect();
-                const s = getComputedStyle(refBtn);
+            // Copy size/font from the More Info button so they always match
+            const moreInfoBtn = btnContainer.querySelector('[data-uia="billboard-more-info"]');
+            if (moreInfoBtn) {
+                const rect = moreInfoBtn.getBoundingClientRect();
+                const s = getComputedStyle(moreInfoBtn);
                 button.style.height = rect.height + 'px';
-                button.style.fontSize = s.fontSize;
-                button.style.fontFamily = s.fontFamily;
-                button.style.fontWeight = s.fontWeight;
-                button.style.lineHeight = s.lineHeight;
+                button.style.padding = s.padding;
                 button.style.borderRadius = s.borderRadius;
+                button.style.fontFamily = s.fontFamily;
+                // Netflix uses a larger font inside an inner <span> — copy from that
+                const innerSpan = moreInfoBtn.querySelector('span');
+                if (innerSpan) {
+                    const spanStyle = getComputedStyle(innerSpan);
+                    button.style.fontSize = spanStyle.fontSize;
+                    button.style.fontWeight = spanStyle.fontWeight;
+                }
             }
 
             const inList = this.watchlistManager.isInWatchlist(videoId);

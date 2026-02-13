@@ -1536,7 +1536,7 @@
 
             // Match Netflix button styling — force 40x40 to match other controls
             btn.className = anchorBtn.className;
-            btn.style.cssText = 'cursor: pointer; width: 40px; height: 40px; margin-right: 28px;';
+            btn.style.cssText = 'cursor: pointer; width: 40px; height: 40px;';
 
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1549,6 +1549,7 @@
             const wrapper = document.createElement('div');
             wrapper.className = anchorWrapper.className;
             wrapper.setAttribute('data-ne-pip-wrapper', '');
+            wrapper.style.cssText = 'margin-right: 20px;';
             wrapper.appendChild(btn);
             anchorWrapper.parentElement.insertBefore(wrapper, anchorWrapper);
             this.pipButton = btn;

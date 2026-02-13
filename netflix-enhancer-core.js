@@ -1520,8 +1520,7 @@
 
         tryInjectButton() {
             if (!this.configManager.get('enablePiP')) return;
-            if (this.pipButton && document.contains(this.pipButton)) return;
-            this.pipButton = null;
+            if (document.querySelector('[data-ne-pip-wrapper]')) return;
 
             const anchorBtn = document.querySelector('[data-uia="control-audio-subtitle"]') ||
                               document.querySelector('[data-uia="control-speed"]') ||
@@ -1535,7 +1534,7 @@
             // Match Netflix SVG style: viewBox 0 0 24 24, width/height 24, display block, fill on paths not stroke on root
             btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="none" style="display:block"><rect x="2" y="3" width="20" height="14" rx="2" stroke="white" stroke-width="2" fill="none"/><rect x="11" y="10" width="9" height="6" rx="1" fill="white"/></svg>`;
 
-            // Match Netflix button styling by copying the fullscreen button's class
+            // Match Netflix button styling
             btn.className = anchorBtn.className;
             btn.style.cssText = 'cursor: pointer;';
 
@@ -1545,7 +1544,13 @@
                 this.togglePiP();
             });
 
-            anchorBtn.parentElement.insertBefore(btn, anchorBtn);
+            // Netflix wraps each button in a container div — clone that structure
+            const anchorWrapper = anchorBtn.parentElement;
+            const wrapper = document.createElement('div');
+            wrapper.className = anchorWrapper.className;
+            wrapper.setAttribute('data-ne-pip-wrapper', '');
+            wrapper.appendChild(btn);
+            anchorWrapper.parentElement.insertBefore(wrapper, anchorWrapper);
             this.pipButton = btn;
             console.log('[Netflix Enhancer] PiP button injected into player controls');
         }
@@ -1588,10 +1593,9 @@
         }
 
         cleanup() {
-            if (this.pipButton && this.pipButton.parentElement) {
-                this.pipButton.remove();
-                this.pipButton = null;
-            }
+            const wrapper = document.querySelector('[data-ne-pip-wrapper]');
+            if (wrapper) wrapper.remove();
+            this.pipButton = null;
             if (this.observer) {
                 this.observer.disconnect();
                 this.observer = null;

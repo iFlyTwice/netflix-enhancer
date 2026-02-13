@@ -1561,16 +1561,18 @@
                 .ne-billboard-rating {
                     display: inline-flex;
                     align-items: center;
-                    gap: 6px;
+                    align-self: center;
+                    gap: 4px;
                     padding: 4px 10px;
                     background: rgba(0, 0, 0, 0.7);
                     border-radius: 4px;
-                    font-size: 13px;
+                    font-size: 12px;
                     font-weight: 600;
                     margin-left: 0.5rem;
                     backdrop-filter: blur(4px);
                     pointer-events: none;
                     white-space: nowrap;
+                    height: fit-content;
                 }
                 .ne-billboard-rating .ne-icon {
                     width: 12px;

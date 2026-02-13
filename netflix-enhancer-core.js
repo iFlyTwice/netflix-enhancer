@@ -1437,7 +1437,9 @@
             
             // Show short version toast on each load
             setTimeout(() => {
-                this.toastManager.show(`Netflix Enhancer v${CORE_VERSION}`, 1800, 'fa-circle-info');
+                const loaderVersion = window.__NETFLIX_ENHANCER_LOADER_VERSION || 'unknown';
+                const coreSource = window.__NETFLIX_ENHANCER_CORE_SOURCE || 'unknown';
+                this.toastManager.show(`Netflix Enhancer v${CORE_VERSION} • L${loaderVersion} • ${coreSource}`, 2200, 'fa-circle-info');
             }, 1000);
             
             console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Fully initialized!`);

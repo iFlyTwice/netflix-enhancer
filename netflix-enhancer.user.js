@@ -29,10 +29,42 @@
     'use strict';
 
     console.log('[Netflix Enhancer Pro] v4.0.3 Loader - Fetching latest code...');
+    window.__NETFLIX_ENHANCER_LOADER_VERSION = '4.0.3';
 
     const CORE_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/main/netflix-enhancer-core.js';
     const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
+    const MIN_CORE_VERSION = '4.0.3';
     const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    function compareVersions(a, b) {
+        const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
+        const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+        const len = Math.max(pa.length, pb.length);
+        for (let i = 0; i < len; i++) {
+            const va = pa[i] || 0;
+            const vb = pb[i] || 0;
+            if (va > vb) return 1;
+            if (va < vb) return -1;
+        }
+        return 0;
+    }
+
+    function extractCoreVersion(code) {
+        const match = String(code).match(/const\s+CORE_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        return match ? match[1] : null;
+    }
+
+    function executeCore(code, sourceName) {
+        const fetchedVersion = extractCoreVersion(code);
+        if (fetchedVersion && compareVersions(fetchedVersion, MIN_CORE_VERSION) < 0) {
+            throw new Error(`Stale core detected from ${sourceName}: ${fetchedVersion} < ${MIN_CORE_VERSION}`);
+        }
+
+        window.__NETFLIX_ENHANCER_CORE_SOURCE = sourceName;
+        window.__NETFLIX_ENHANCER_CORE_VERSION = fetchedVersion || 'unknown';
+        console.log(`[Netflix Enhancer Pro] Core ${window.__NETFLIX_ENHANCER_CORE_VERSION} loaded from ${sourceName} ✓`);
+        eval(code);
+    }
 
     GM_xmlhttpRequest({
         method: 'GET',
@@ -43,11 +75,11 @@
         },
         onload(response) {
             if (response.status === 200) {
-                console.log('[Netflix Enhancer Pro] Core loaded from CDN ✓');
                 try {
-                    eval(response.responseText);
+                    executeCore(response.responseText, 'github-raw');
                 } catch (error) {
                     console.error('[Netflix Enhancer Pro] Error executing core:', error);
+                    loadFallback();
                 }
                 return;
             }
@@ -72,9 +104,8 @@
             },
             onload(response) {
                 if (response.status === 200) {
-                    console.log('[Netflix Enhancer Pro] Core loaded from GitHub ✓');
                     try {
-                        eval(response.responseText);
+                        executeCore(response.responseText, 'jsdelivr-cdn');
                     } catch (error) {
                         console.error('[Netflix Enhancer Pro] Error executing core:', error);
                     }

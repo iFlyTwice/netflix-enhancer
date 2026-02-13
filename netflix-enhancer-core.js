@@ -1861,14 +1861,6 @@
                     }
                     ratingEl.innerHTML = html;
 
-                    // Match height to sibling buttons
-                    if (moreInfoBtn) {
-                        const rect = moreInfoBtn.getBoundingClientRect();
-                        ratingEl.style.height = rect.height + 'px';
-                        ratingEl.style.display = 'inline-flex';
-                        ratingEl.style.alignItems = 'center';
-                    }
-
                     btnContainer.appendChild(ratingEl);
                 });
             }

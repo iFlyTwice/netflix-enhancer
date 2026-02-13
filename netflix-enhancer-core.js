@@ -1,6 +1,8 @@
     'use strict';
 
-    console.log('[Netflix Enhancer Pro] v3.2 (React Edition) - Loading...');
+    const CORE_VERSION = '4.0.1';
+
+    console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
     // Load Font Awesome CSS
     const fontAwesomeCSS = GM_getResourceText("FONTAWESOME_CSS");
@@ -460,7 +462,7 @@
                 
                 // Footer
                 React.createElement('div', { className: 'settings-footer' },
-                    React.createElement('span', { className: 'version-info' }, 'v3.2.0 (React)'),
+                    React.createElement('span', { className: 'version-info' }, `v${CORE_VERSION} (React)`),
                     React.createElement('div', { style: { display: 'flex', gap: '12px' } },
                         React.createElement('button', { className: 'btn btn-secondary', onClick: handleReset }, 'Reset Defaults'),
                         React.createElement('button', { className: 'btn btn-primary', onClick: handleSave }, 'Save Changes')
@@ -1365,12 +1367,12 @@
             // Setup global keyboard shortcut
             this.setupGlobalShortcuts();
             
-            // Show welcome message
+            // Show short version toast on each load
             setTimeout(() => {
-                this.toastManager.show('Netflix Enhancer Pro loaded! Press Ctrl+Shift+E for settings', 3500);
+                this.toastManager.show(`Netflix Enhancer v${CORE_VERSION}`, 1800, 'fa-circle-info');
             }, 1000);
             
-            console.log('[Netflix Enhancer Pro] v3.2.0 (React Edition) - Fully initialized!');
+            console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Fully initialized!`);
             console.log('[Netflix Enhancer Pro] Powered by React ' + React.version);
             console.log('[Netflix Enhancer Pro] Keyboard shortcuts:');
             console.log('   Ctrl+Shift+E - Open settings');

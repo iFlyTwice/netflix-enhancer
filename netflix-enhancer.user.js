@@ -10,15 +10,9 @@
 // @downloadURL  https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/main/netflix-enhancer.user.js
 // @supportURL   https://github.com/iFlyTwice/netflix-enhancer/issues
 // @homepageURL  https://github.com/iFlyTwice/netflix-enhancer
-// @resource     FONTAWESOME_CSS https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css
 // @require      https://unpkg.com/react@18.2.0/umd/react.production.min.js
 // @require      https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js
 // @grant        GM_addStyle
-// @grant        GM_getValue
-// @grant        GM_setValue
-// @grant        GM_getResourceText
-// @grant        GM.getValue
-// @grant        GM.setValue
 // @grant        GM_xmlhttpRequest
 // @connect      github.com
 // @connect      api.github.com

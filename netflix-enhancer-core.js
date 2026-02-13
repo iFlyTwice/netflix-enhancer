@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '4.0.1';
+    const CORE_VERSION = '4.0.2';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -12,6 +12,69 @@
     const React = window.React;
     const ReactDOM = window.ReactDOM;
     const { useState, useEffect } = React;
+
+    function getNetflixReactModels() {
+        return window.netflix?.reactContext?.models || null;
+    }
+
+    function getNetflixFalcorCache() {
+        return window.netflix?.falcorCache || null;
+    }
+
+    function extractVideoIdFromUrl(url) {
+        if (!url) return null;
+        const match = String(url).match(/\/(?:watch|title)\/(\d+)/);
+        return match ? match[1] : null;
+    }
+
+    function getCurrentVideoIdFromAppState() {
+        const falcor = getNetflixFalcorCache();
+        const videos = falcor?.videos;
+
+        if (videos) {
+            for (const key of Object.keys(videos)) {
+                const ref = videos[key]?.current?.value;
+                if (Array.isArray(ref) && ref[1]) {
+                    return String(ref[1]);
+                }
+            }
+
+            const firstNumericKey = Object.keys(videos).find(k => /^\d+$/.test(k));
+            if (firstNumericKey) {
+                return firstNumericKey;
+            }
+        }
+
+        const originalUrl = getNetflixReactModels()?.serverDefs?.data?.originalUrl;
+        return extractVideoIdFromUrl(originalUrl) || extractVideoIdFromUrl(window.location.href);
+    }
+
+    function getVideoTitleFromAppState(videoId) {
+        if (!videoId) return null;
+
+        const falcorVideo = getNetflixFalcorCache()?.videos?.[videoId];
+        const falcorTitle =
+            falcorVideo?.title?.value ||
+            falcorVideo?.summary?.value?.title ||
+            falcorVideo?.details?.value?.title ||
+            falcorVideo?.metadata?.value?.title ||
+            null;
+
+        if (falcorTitle) return falcorTitle;
+
+        const reactTitle = window.netflix?.reactContext?.title;
+        if (reactTitle && reactTitle !== 'Netflix') return reactTitle;
+
+        const pageTitle = getNetflixReactModels()?.pageProperties?.data?.title;
+        if (pageTitle && pageTitle !== 'Netflix') return pageTitle;
+
+        return null;
+    }
+
+    function getCurrentTitleFromAppState() {
+        const currentVideoId = getCurrentVideoIdFromAppState();
+        return getVideoTitleFromAppState(currentVideoId);
+    }
 
     // ============================================================
     // DEFAULT CONFIGURATION
@@ -1244,13 +1307,18 @@
         addWatchlistButton(card) {
             const container = card.querySelector('.boxart-container') || card;
             if (!container || container.querySelector('.ne-watchlist-btn')) return;
-            
-            const title = card.getAttribute('aria-label') || 'Unknown Title';
+
             const link = card.querySelector('a');
             const url = link ? link.href : null;
-            
-            // Extract ID from URL or generate one
-            const id = url ? url.split('/').pop().split('?')[0] : `card-${Date.now()}`;
+
+            // Resolve ID/title from app state first, then fallback to DOM
+            const id = extractVideoIdFromUrl(url) || getCurrentVideoIdFromAppState() || `card-${Date.now()}`;
+            const title =
+                getVideoTitleFromAppState(id) ||
+                card.getAttribute('aria-label') ||
+                card.querySelector('img')?.getAttribute('alt') ||
+                getCurrentTitleFromAppState() ||
+                'Unknown Title';
             
             const button = document.createElement('button');
             button.className = 'ne-watchlist-btn';

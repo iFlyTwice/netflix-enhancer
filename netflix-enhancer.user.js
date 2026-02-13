@@ -29,27 +29,13 @@
 (function() {
     'use strict';
 
-    console.log('[Netflix Enhancer Pro] v4.0.5 Loader - Fetching latest code...');
-    window.__NETFLIX_ENHANCER_LOADER_VERSION = '4.0.5';
+    console.log('[Netflix Enhancer Pro] Loader bootstrap - Fetching latest core...');
+    window.__NETFLIX_ENHANCER_LOADER_VERSION = 'bootstrap';
 
     const CORE_URL = 'https://github.com/iFlyTwice/netflix-enhancer/releases/latest/download/netflix-enhancer-core.js';
     const SECONDARY_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/refs/heads/main/netflix-enhancer-core.js';
     const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
-    const MIN_CORE_VERSION = '4.0.5';
     const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-    function compareVersions(a, b) {
-        const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
-        const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
-        const len = Math.max(pa.length, pb.length);
-        for (let i = 0; i < len; i++) {
-            const va = pa[i] || 0;
-            const vb = pb[i] || 0;
-            if (va > vb) return 1;
-            if (va < vb) return -1;
-        }
-        return 0;
-    }
 
     function extractCoreVersion(code) {
         const match = String(code).match(/const\s+CORE_VERSION\s*=\s*['"]([^'"]+)['"]/);
@@ -58,9 +44,6 @@
 
     function executeCore(code, sourceName) {
         const fetchedVersion = extractCoreVersion(code);
-        if (fetchedVersion && compareVersions(fetchedVersion, MIN_CORE_VERSION) < 0) {
-            throw new Error(`Stale core detected from ${sourceName}: ${fetchedVersion} < ${MIN_CORE_VERSION}`);
-        }
 
         window.__NETFLIX_ENHANCER_CORE_SOURCE = sourceName;
         window.__NETFLIX_ENHANCER_CORE_VERSION = fetchedVersion || 'unknown';

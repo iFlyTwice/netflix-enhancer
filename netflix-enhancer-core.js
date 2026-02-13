@@ -1437,12 +1437,13 @@
             
             // Show short version toast on each load
             setTimeout(() => {
-                const loaderVersion = window.__NETFLIX_ENHANCER_LOADER_VERSION || 'unknown';
+                const runtimeCoreVersion = window.__NETFLIX_ENHANCER_CORE_VERSION || CORE_VERSION;
                 const coreSource = window.__NETFLIX_ENHANCER_CORE_SOURCE || 'unknown';
-                this.toastManager.show(`Netflix Enhancer v${CORE_VERSION} • L${loaderVersion} • ${coreSource}`, 2200, 'fa-circle-info');
+                this.toastManager.show(`Netflix Enhancer v${runtimeCoreVersion} • ${coreSource}`, 2200, 'fa-circle-info');
             }, 1000);
             
-            console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Fully initialized!`);
+            const runtimeCoreVersion = window.__NETFLIX_ENHANCER_CORE_VERSION || CORE_VERSION;
+            console.log(`[Netflix Enhancer Pro] v${runtimeCoreVersion} (React Edition) - Fully initialized!`);
             console.log('[Netflix Enhancer Pro] Powered by React ' + React.version);
             console.log('[Netflix Enhancer Pro] Keyboard shortcuts:');
             console.log('   Ctrl+Shift+E - Open settings');

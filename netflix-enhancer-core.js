@@ -1530,7 +1530,8 @@
             const btn = document.createElement('button');
             btn.setAttribute('data-uia', 'control-pip');
             btn.setAttribute('aria-label', 'Picture in Picture');
-            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><rect x="11" y="10" width="9" height="6" rx="1"/></svg>`;
+            // Match Netflix SVG style: viewBox 0 0 24 24, width/height 24, display block, fill on paths not stroke on root
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="none" style="display:block"><rect x="2" y="3" width="20" height="14" rx="2" stroke="white" stroke-width="2" fill="none"/><rect x="11" y="10" width="9" height="6" rx="1" fill="white"/></svg>`;
 
             // Match Netflix button styling by copying the fullscreen button's class
             btn.className = fullscreenBtn.className;

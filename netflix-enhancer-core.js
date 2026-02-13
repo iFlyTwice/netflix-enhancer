@@ -644,14 +644,14 @@
                     
                     // Interface Tab
                     activeTab === 'interface' && React.createElement('div', { className: 'tab-content active' },
-                        React.createElement('div', { className: 'setting-group' },
-                            React.createElement('div', { className: 'setting-group-title' }, 'User Interface'),
-                            
-                            SettingItem('Show Notifications', 'Display toast notifications for actions', 
+                        React.createElement(CollapsibleGroup, { title: 'Display', icon: 'film' },
+                            SettingItem('Show Notifications', 'Display toast notifications for actions',
                                 config.showNotifications, (val) => handleChange('showNotifications', val)),
-                            SettingItem('Show Floating Button', 'Display settings button on page', 
-                                config.showFloatingButton, (val) => handleChange('showFloatingButton', val)),
-                            SettingItem('Enhanced Title Cards', 'Add hover effects to browse tiles', 
+                            SettingItem('Show Floating Button', 'Display settings button on page',
+                                config.showFloatingButton, (val) => handleChange('showFloatingButton', val))
+                        ),
+                        React.createElement(CollapsibleGroup, { title: 'Browse Enhancements', icon: 'star' },
+                            SettingItem('Enhanced Title Cards', 'Add hover effects to browse tiles',
                                 config.enhanceTitleCards, (val) => handleChange('enhanceTitleCards', val)),
                             SettingItem('Show Watchlist Buttons', 'Add "Continue Watching" buttons to title cards',
                                 config.showWatchlistButtons, (val) => handleChange('showWatchlistButtons', val)),
@@ -716,12 +716,10 @@
                     
                     // Advanced Tab
                     activeTab === 'advanced' && React.createElement('div', { className: 'tab-content active' },
-                        React.createElement('div', { className: 'setting-group' },
-                            React.createElement('div', { className: 'setting-group-title' }, 'Advanced Settings'),
-                            
-                            SettingItem('Enable Custom Styles', 'Apply custom CSS enhancements', 
+                        React.createElement(CollapsibleGroup, { title: 'Advanced', icon: 'info' },
+                            SettingItem('Enable Custom Styles', 'Apply custom CSS enhancements',
                                 config.enableCustomStyles, (val) => handleChange('enableCustomStyles', val)),
-                            SettingItem('Debug Mode', 'Show console logs for debugging', 
+                            SettingItem('Debug Mode', 'Show console logs for debugging',
                                 config.debugMode, (val) => handleChange('debugMode', val))
                         )
                     )

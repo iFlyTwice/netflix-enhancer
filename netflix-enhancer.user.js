@@ -20,6 +20,7 @@
 // @grant        GM.getValue
 // @grant        GM.setValue
 // @grant        GM_xmlhttpRequest
+// @connect      github.com
 // @connect      cdn.jsdelivr.net
 // @connect      raw.githubusercontent.com
 // @run-at       document-start
@@ -31,7 +32,8 @@
     console.log('[Netflix Enhancer Pro] v4.0.4 Loader - Fetching latest code...');
     window.__NETFLIX_ENHANCER_LOADER_VERSION = '4.0.4';
 
-    const CORE_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/main/netflix-enhancer-core.js';
+    const CORE_URL = 'https://github.com/iFlyTwice/netflix-enhancer/releases/latest/download/netflix-enhancer-core.js';
+    const SECONDARY_URL = 'https://raw.githubusercontent.com/iFlyTwice/netflix-enhancer/refs/heads/main/netflix-enhancer-core.js';
     const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/iFlyTwice/netflix-enhancer@main/netflix-enhancer-core.js';
     const MIN_CORE_VERSION = '4.0.4';
     const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -76,23 +78,53 @@
         onload(response) {
             if (response.status === 200) {
                 try {
-                    executeCore(response.responseText, 'github-raw');
+                    executeCore(response.responseText, 'github-release-latest');
                 } catch (error) {
                     console.error('[Netflix Enhancer Pro] Error executing core:', error);
-                    loadFallback();
+                    loadSecondary();
                 }
                 return;
             }
 
-            console.warn('[Netflix Enhancer Pro] Primary source failed, trying fallback...');
-            loadFallback();
+            console.warn('[Netflix Enhancer Pro] Primary source failed, trying secondary...');
+            loadSecondary();
         },
         onerror() {
-            console.warn('[Netflix Enhancer Pro] Primary source unavailable, using fallback...');
-            loadFallback();
+            console.warn('[Netflix Enhancer Pro] Primary source unavailable, trying secondary...');
+            loadSecondary();
         },
         timeout: 5000
     });
+
+    function loadSecondary() {
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: `${SECONDARY_URL}?v=${cacheBuster}`,
+            headers: {
+                'Cache-Control': 'no-cache, no-store, max-age=0',
+                'Pragma': 'no-cache'
+            },
+            onload(response) {
+                if (response.status === 200) {
+                    try {
+                        executeCore(response.responseText, 'github-raw');
+                    } catch (error) {
+                        console.error('[Netflix Enhancer Pro] Error executing secondary core:', error);
+                        loadFallback();
+                    }
+                    return;
+                }
+
+                console.warn('[Netflix Enhancer Pro] Secondary source failed, trying fallback...');
+                loadFallback();
+            },
+            onerror() {
+                console.warn('[Netflix Enhancer Pro] Secondary source unavailable, using fallback...');
+                loadFallback();
+            },
+            timeout: 5000
+        });
+    }
 
     function loadFallback() {
         GM_xmlhttpRequest({

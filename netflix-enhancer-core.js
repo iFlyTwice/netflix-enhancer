@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.0.0';
+    const CORE_VERSION = '5.1.0';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -74,6 +74,44 @@
     function getCurrentTitleFromAppState() {
         const currentVideoId = getCurrentVideoIdFromAppState();
         return getVideoTitleFromAppState(currentVideoId);
+    }
+
+    function getVideoProgressData(videoId) {
+        if (!videoId) return null;
+
+        const falcorVideo = getNetflixFalcorCache()?.videos?.[videoId];
+        if (!falcorVideo) return null;
+
+        const bookmark = falcorVideo?.bookmarkPosition?.value || 0;
+        const runtime = falcorVideo?.runtime?.value || 0;
+        
+        if (runtime === 0) return null;
+
+        const progressPercent = (bookmark / runtime) * 100;
+        const remainingSeconds = runtime - bookmark;
+        const watchedMinutes = Math.floor(bookmark / 60);
+        const totalMinutes = Math.floor(runtime / 60);
+
+        return {
+            bookmark,
+            runtime,
+            progressPercent,
+            remainingSeconds,
+            watchedMinutes,
+            totalMinutes,
+            isStarted: bookmark > 30, // More than 30 seconds watched
+            isAlmostFinished: progressPercent > 90
+        };
+    }
+
+    function formatTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        }
+        return `${minutes}m`;
     }
 
     // ============================================================
@@ -1269,6 +1307,49 @@
                     border-color: #7c3aed;
                     opacity: 1;
                 }
+                
+                .ne-progress-bar {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: rgba(229, 9, 20, 0.3);
+                    z-index: 10;
+                    overflow: hidden;
+                }
+                
+                .ne-progress-fill {
+                    height: 100%;
+                    background: #e50914;
+                    transition: width 0.3s ease;
+                }
+                
+                .ne-progress-badge {
+                    position: absolute;
+                    bottom: 12px;
+                    left: 8px;
+                    padding: 4px 8px;
+                    background: rgba(20, 20, 20, 0.95);
+                    border-radius: 4px;
+                    font-size: 11px;
+                    color: white;
+                    font-weight: 600;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    z-index: 11;
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                
+                .title-card-container:hover .ne-progress-badge {
+                    opacity: 1;
+                }
+                
+                .ne-progress-badge.almost-done {
+                    background: rgba(124, 58, 237, 0.95);
+                    border-color: rgba(124, 58, 237, 0.3);
+                }
             `);
             
             this.observer = new MutationObserver(() => {
@@ -1293,6 +1374,9 @@
                     if (this.configManager.get('showWatchlistButtons')) {
                         this.addWatchlistButton(card);
                     }
+                    
+                    // Add progress bar
+                    this.addProgressBar(card);
                     
                     card.addEventListener('mouseenter', () => {
                         const title = card.getAttribute('aria-label');
@@ -1355,6 +1439,45 @@
             
             container.style.position = 'relative';
             container.appendChild(button);
+        }
+        
+        addProgressBar(card) {
+            const container = card.querySelector('.boxart-container') || card;
+            if (!container || container.querySelector('.ne-progress-bar')) return;
+
+            const link = card.querySelector('a');
+            const url = link ? link.href : null;
+            const videoId = extractVideoIdFromUrl(url);
+            
+            if (!videoId) return;
+
+            const progressData = getVideoProgressData(videoId);
+            if (!progressData || !progressData.isStarted) return;
+
+            // Create progress bar
+            const progressBar = document.createElement('div');
+            progressBar.className = 'ne-progress-bar';
+            
+            const progressFill = document.createElement('div');
+            progressFill.className = 'ne-progress-fill';
+            progressFill.style.width = `${progressData.progressPercent}%`;
+            
+            progressBar.appendChild(progressFill);
+            container.appendChild(progressBar);
+
+            // Create progress badge
+            const badge = document.createElement('div');
+            badge.className = 'ne-progress-badge';
+            
+            if (progressData.isAlmostFinished) {
+                badge.classList.add('almost-done');
+                badge.innerHTML = `<i class="fa-solid fa-check"></i> ${Math.round(progressData.progressPercent)}% watched`;
+            } else {
+                const remaining = formatTime(progressData.remainingSeconds);
+                badge.textContent = `${Math.round(progressData.progressPercent)}% \u2022 ${remaining} left`;
+            }
+            
+            container.appendChild(badge);
         }
 
         destroy() {

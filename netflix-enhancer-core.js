@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.5.0';
+    const CORE_VERSION = '5.5.1';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
 
@@ -335,10 +335,12 @@
             } catch {
                 this.cache = {};
             }
-            // Prune entries older than 7 days
+            // Prune entries older than 7 days + purge stale notFound entries from GM_xmlhttpRequest era
             const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
             for (const key of Object.keys(this.cache)) {
-                if (this.cache[key].ts < weekAgo) delete this.cache[key];
+                if (this.cache[key].ts < weekAgo || (this.cache[key].notFound && !this.cache[key].v2)) {
+                    delete this.cache[key];
+                }
             }
             this.saveCache();
         }
@@ -391,59 +393,46 @@
             }
 
             // Not found — cache the miss to avoid re-fetching
-            this.cache[key] = { notFound: true, ts: Date.now() };
+            this.cache[key] = { notFound: true, v2: true, ts: Date.now() };
             this.saveCache();
             return null;
         }
 
-        _omdb(title, year) {
-            return new Promise(resolve => {
+        async _omdb(title, year) {
+            try {
                 let url = `https://www.omdbapi.com/?apikey=${this.OMDB_KEY}&t=${encodeURIComponent(title)}`;
                 if (year) url += `&y=${year}`;
 
-                GM_xmlhttpRequest({
-                    method: 'GET',
-                    url,
-                    onload(res) {
-                        try {
-                            const d = JSON.parse(res.responseText);
-                            if (d.Response !== 'True') return resolve(null);
-                            const result = {
-                                imdb: d.imdbRating !== 'N/A' ? parseFloat(d.imdbRating) : null,
-                                rt: null,
-                                source: 'omdb'
-                            };
-                            const rtEntry = d.Ratings?.find(r => r.Source === 'Rotten Tomatoes');
-                            if (rtEntry) result.rt = parseInt(rtEntry.Value);
-                            resolve(result);
-                        } catch { resolve(null); }
-                    },
-                    onerror() { resolve(null); },
-                    timeout: 5000
-                });
-            });
+                const res = await fetch(url);
+                const d = await res.json();
+                if (d.Response !== 'True') return null;
+
+                const result = {
+                    imdb: d.imdbRating !== 'N/A' ? parseFloat(d.imdbRating) : null,
+                    rt: null,
+                    source: 'omdb'
+                };
+                const rtEntry = d.Ratings?.find(r => r.Source === 'Rotten Tomatoes');
+                if (rtEntry) result.rt = parseInt(rtEntry.Value);
+                return result;
+            } catch {
+                return null;
+            }
         }
 
-        _tmdb(title, year) {
-            return new Promise(resolve => {
+        async _tmdb(title, year) {
+            try {
                 let url = `https://api.themoviedb.org/3/search/multi?api_key=${this.TMDB_KEY}&query=${encodeURIComponent(title)}`;
                 if (year) url += `&year=${year}`;
 
-                GM_xmlhttpRequest({
-                    method: 'GET',
-                    url,
-                    onload(res) {
-                        try {
-                            const d = JSON.parse(res.responseText);
-                            const best = d.results?.[0];
-                            if (!best || !best.vote_average) return resolve(null);
-                            resolve({ tmdb: best.vote_average, source: 'tmdb' });
-                        } catch { resolve(null); }
-                    },
-                    onerror() { resolve(null); },
-                    timeout: 5000
-                });
-            });
+                const res = await fetch(url);
+                const d = await res.json();
+                const best = d.results?.[0];
+                if (!best || !best.vote_average) return null;
+                return { tmdb: best.vote_average, source: 'tmdb' };
+            } catch {
+                return null;
+            }
         }
     }
 

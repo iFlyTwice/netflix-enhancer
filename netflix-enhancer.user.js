@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhancer Pro
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
+// @version      1.0.2
 // @description  Bootstrap loader for Netflix Enhancer - fetches latest core via commit SHA for instant updates
 // @author       iFlyTwice
 // @match        https://www.netflix.com/*

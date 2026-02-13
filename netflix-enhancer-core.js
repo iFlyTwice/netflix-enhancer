@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.1.0';
+    const CORE_VERSION = '5.1.1';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -1263,12 +1263,12 @@
             if (!this.configManager.get('enhanceTitleCards')) return;
             
             GM_addStyle(`
-                .title-card-container:hover .boxart-container {
+                .ptrack-content:hover .boxart-container {
                     transform: scale(1.15);
                     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 
-                .title-card-container .boxart-container {
+                .ptrack-content .boxart-container {
                     transition: transform 0.3s ease;
                 }
                 
@@ -1292,7 +1292,7 @@
                     font-size: 14px;
                 }
                 
-                .title-card-container:hover .ne-watchlist-btn {
+                .ptrack-content:hover .ne-watchlist-btn {
                     opacity: 1;
                 }
                 
@@ -1342,7 +1342,7 @@
                     border: 1px solid rgba(255, 255, 255, 0.1);
                 }
                 
-                .title-card-container:hover .ne-progress-badge {
+                .ptrack-content:hover .ne-progress-badge {
                     opacity: 1;
                 }
                 
@@ -1365,7 +1365,7 @@
         }
 
         enhanceTitleCards() {
-            const titleCards = document.querySelectorAll('.title-card');
+            const titleCards = document.querySelectorAll('.ptrack-content');
             titleCards.forEach(card => {
                 if (!card.dataset.enhanced) {
                     card.dataset.enhanced = 'true';
@@ -1379,7 +1379,8 @@
                     this.addProgressBar(card);
                     
                     card.addEventListener('mouseenter', () => {
-                        const title = card.getAttribute('aria-label');
+                        const link = card.querySelector('a');
+                        const title = link?.getAttribute('aria-label');
                         if (title && this.configManager.get('debugMode')) {
                             console.log(`[Netflix Enhancer] Hovering: ${title}`);
                         }
@@ -1389,20 +1390,15 @@
         }
         
         addWatchlistButton(card) {
-            const container = card.querySelector('.boxart-container') || card;
+            const container = card.querySelector('.boxart-container');
             if (!container || container.querySelector('.ne-watchlist-btn')) return;
 
             const link = card.querySelector('a');
             const url = link ? link.href : null;
+            const title = link ? link.getAttribute('aria-label') : 'Unknown Title';
 
-            // Resolve ID/title from app state first, then fallback to DOM
+            // Resolve ID from URL or app state
             const id = extractVideoIdFromUrl(url) || getCurrentVideoIdFromAppState() || `card-${Date.now()}`;
-            const title =
-                getVideoTitleFromAppState(id) ||
-                card.getAttribute('aria-label') ||
-                card.querySelector('img')?.getAttribute('alt') ||
-                getCurrentTitleFromAppState() ||
-                'Unknown Title';
             
             const button = document.createElement('button');
             button.className = 'ne-watchlist-btn';
@@ -1442,7 +1438,7 @@
         }
         
         addProgressBar(card) {
-            const container = card.querySelector('.boxart-container') || card;
+            const container = card.querySelector('.boxart-container');
             if (!container || container.querySelector('.ne-progress-bar')) return;
 
             const link = card.querySelector('a');

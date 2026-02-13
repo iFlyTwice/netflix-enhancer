@@ -1536,7 +1536,7 @@
 
             // Match Netflix button styling — force 40x40 to match other controls
             btn.className = anchorBtn.className;
-            btn.style.cssText = 'cursor: pointer; width: 40px; height: 40px;';
+            btn.style.cssText = 'cursor: pointer; width: 40px; height: 40px; margin-right: 16px;';
 
             btn.addEventListener('click', (e) => {
                 e.preventDefault();

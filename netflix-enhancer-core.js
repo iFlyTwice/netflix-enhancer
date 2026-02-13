@@ -1,6 +1,6 @@
     'use strict';
 
-    const CORE_VERSION = '5.1.1';
+    const CORE_VERSION = '5.2.0';
 
     console.log(`[Netflix Enhancer Pro] v${CORE_VERSION} (React Edition) - Loading...`);
     
@@ -1263,15 +1263,15 @@
             if (!this.configManager.get('enhanceTitleCards')) return;
             
             GM_addStyle(`
-                .ptrack-content:hover .boxart-container {
+                .title-card-container:hover .boxart-container {
                     transform: scale(1.15);
                     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                 }
-                
-                .ptrack-content .boxart-container {
+
+                .title-card-container .boxart-container {
                     transition: transform 0.3s ease;
                 }
-                
+
                 .ne-watchlist-btn {
                     position: absolute;
                     top: 8px;
@@ -1291,40 +1291,23 @@
                     color: white;
                     font-size: 14px;
                 }
-                
-                .ptrack-content:hover .ne-watchlist-btn {
+
+                .title-card-container:hover .ne-watchlist-btn {
                     opacity: 1;
                 }
-                
+
                 .ne-watchlist-btn:hover {
                     background: #7c3aed;
                     border-color: #7c3aed;
                     transform: scale(1.1);
                 }
-                
+
                 .ne-watchlist-btn.in-watchlist {
                     background: #7c3aed;
                     border-color: #7c3aed;
                     opacity: 1;
                 }
-                
-                .ne-progress-bar {
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                    height: 4px;
-                    background: rgba(229, 9, 20, 0.3);
-                    z-index: 10;
-                    overflow: hidden;
-                }
-                
-                .ne-progress-fill {
-                    height: 100%;
-                    background: #e50914;
-                    transition: width 0.3s ease;
-                }
-                
+
                 .ne-progress-badge {
                     position: absolute;
                     bottom: 12px;
@@ -1341,11 +1324,11 @@
                     backdrop-filter: blur(8px);
                     border: 1px solid rgba(255, 255, 255, 0.1);
                 }
-                
-                .ptrack-content:hover .ne-progress-badge {
+
+                .title-card-container:hover .ne-progress-badge {
                     opacity: 1;
                 }
-                
+
                 .ne-progress-badge.almost-done {
                     background: rgba(124, 58, 237, 0.95);
                     border-color: rgba(124, 58, 237, 0.3);
@@ -1364,22 +1347,46 @@
             console.log('[Netflix Enhancer] Title card enhancements enabled');
         }
 
+        // Extract video ID from a title card's tracking context JSON
+        getCardVideoId(card) {
+            const ptrack = card.querySelector('.ptrack-content[data-ui-tracking-context]');
+            if (ptrack) {
+                try {
+                    const ctx = JSON.parse(decodeURIComponent(ptrack.getAttribute('data-ui-tracking-context')));
+                    if (ctx.video_id) return String(ctx.video_id);
+                } catch { /* fall through */ }
+            }
+            // Fallback: extract from link href
+            const link = card.querySelector('a.slider-refocus');
+            return link ? extractVideoIdFromUrl(link.href) : null;
+        }
+
+        // Read Netflix's native progress bar percentage for a card
+        getNativeProgress(card) {
+            const completed = card.querySelector('.progress-completed');
+            if (!completed) return null;
+            const width = completed.style.width;
+            if (!width) return null;
+            return parseFloat(width);
+        }
+
         enhanceTitleCards() {
-            const titleCards = document.querySelectorAll('.ptrack-content');
+            // Use .title-card-container to scope to actual row cards only (not billboard)
+            const titleCards = document.querySelectorAll('.title-card-container');
             titleCards.forEach(card => {
-                if (!card.dataset.enhanced) {
-                    card.dataset.enhanced = 'true';
-                    
+                if (!card.dataset.neEnhanced) {
+                    card.dataset.neEnhanced = 'true';
+
                     // Add watchlist button if enabled
                     if (this.configManager.get('showWatchlistButtons')) {
                         this.addWatchlistButton(card);
                     }
-                    
-                    // Add progress bar
-                    this.addProgressBar(card);
-                    
+
+                    // Add progress badge (reads Netflix's native progress bar)
+                    this.addProgressBadge(card);
+
                     card.addEventListener('mouseenter', () => {
-                        const link = card.querySelector('a');
+                        const link = card.querySelector('a.slider-refocus');
                         const title = link?.getAttribute('aria-label');
                         if (title && this.configManager.get('debugMode')) {
                             console.log(`[Netflix Enhancer] Hovering: ${title}`);
@@ -1393,12 +1400,12 @@
             const container = card.querySelector('.boxart-container');
             if (!container || container.querySelector('.ne-watchlist-btn')) return;
 
-            const link = card.querySelector('a');
+            const link = card.querySelector('a.slider-refocus');
             const url = link ? link.href : null;
             const title = link ? link.getAttribute('aria-label') : 'Unknown Title';
 
-            // Resolve ID from URL or app state
-            const id = extractVideoIdFromUrl(url) || getCurrentVideoIdFromAppState() || `card-${Date.now()}`;
+            // Resolve ID: tracking context JSON → URL fallback → app state fallback
+            const id = this.getCardVideoId(card) || getCurrentVideoIdFromAppState() || `card-${Date.now()}`;
             
             const button = document.createElement('button');
             button.className = 'ne-watchlist-btn';
@@ -1437,42 +1444,38 @@
             container.appendChild(button);
         }
         
-        addProgressBar(card) {
+        addProgressBadge(card) {
             const container = card.querySelector('.boxart-container');
-            if (!container || container.querySelector('.ne-progress-bar')) return;
+            if (!container || container.querySelector('.ne-progress-badge')) return;
 
-            const link = card.querySelector('a');
-            const url = link ? link.href : null;
-            const videoId = extractVideoIdFromUrl(url);
-            
-            if (!videoId) return;
+            // First try Netflix's native progress bar (available on Continue Watching cards)
+            let progressPercent = this.getNativeProgress(card);
 
-            const progressData = getVideoProgressData(videoId);
-            if (!progressData || !progressData.isStarted) return;
+            // Fallback: try our own progress data from app state
+            if (progressPercent === null) {
+                const videoId = this.getCardVideoId(card);
+                if (!videoId) return;
+                const progressData = getVideoProgressData(videoId);
+                if (!progressData || !progressData.isStarted) return;
+                progressPercent = progressData.progressPercent;
+            }
 
-            // Create progress bar
-            const progressBar = document.createElement('div');
-            progressBar.className = 'ne-progress-bar';
-            
-            const progressFill = document.createElement('div');
-            progressFill.className = 'ne-progress-fill';
-            progressFill.style.width = `${progressData.progressPercent}%`;
-            
-            progressBar.appendChild(progressFill);
-            container.appendChild(progressBar);
+            if (progressPercent === null || progressPercent <= 0) return;
 
-            // Create progress badge
+            const isAlmostFinished = progressPercent >= 90;
+
+            // Create progress badge (hover overlay only — no duplicate progress bar)
             const badge = document.createElement('div');
             badge.className = 'ne-progress-badge';
-            
-            if (progressData.isAlmostFinished) {
+
+            if (isAlmostFinished) {
                 badge.classList.add('almost-done');
-                badge.innerHTML = `<i class="fa-solid fa-check"></i> ${Math.round(progressData.progressPercent)}% watched`;
+                badge.innerHTML = `<i class="fa-solid fa-check"></i> ${Math.round(progressPercent)}% watched`;
             } else {
-                const remaining = formatTime(progressData.remainingSeconds);
-                badge.textContent = `${Math.round(progressData.progressPercent)}% \u2022 ${remaining} left`;
+                badge.textContent = `${Math.round(progressPercent)}% watched`;
             }
-            
+
+            container.style.position = 'relative';
             container.appendChild(badge);
         }
 

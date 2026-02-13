@@ -1537,12 +1537,13 @@
             const button = document.createElement('button');
             button.className = 'ne-billboard-list-btn';
 
-            // Copy size/font from the More Info button so they always match
-            const moreInfoBtn = btnContainer.querySelector('[data-uia="billboard-more-info"]');
-            if (moreInfoBtn) {
-                const s = getComputedStyle(moreInfoBtn);
-                button.style.height = s.height;
-                button.style.padding = s.padding;
+            // Copy size/font from the Play button so they always match
+            const playBtn = btnContainer.querySelector('[data-uia="play-button"]');
+            const refBtn = playBtn || btnContainer.querySelector('[data-uia="billboard-more-info"]');
+            if (refBtn) {
+                const rect = refBtn.getBoundingClientRect();
+                const s = getComputedStyle(refBtn);
+                button.style.height = rect.height + 'px';
                 button.style.fontSize = s.fontSize;
                 button.style.fontFamily = s.fontFamily;
                 button.style.fontWeight = s.fontWeight;
